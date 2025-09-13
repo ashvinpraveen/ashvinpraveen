@@ -1,0 +1,136 @@
+---
+import MacOSMenuBar from './MacOSMenuBar.astro';
+import SideNavigation from './SideNavigation.astro';
+import MobileNav from './MobileNav.astro';
+
+interface Props {
+  title?: string;
+}
+
+const { title } = Astro.props;
+---
+
+<MacOSMenuBar />
+<div class="card-wrapper">
+  <div class="gradient-background"></div>
+  <div class="main-card">
+    <SideNavigation />
+    <div class="content-area">
+      <slot />
+    </div>
+  </div>
+</div>
+<MobileNav />
+
+<style>
+  .card-wrapper {
+    min-height: 100vh;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem 2rem 1rem;
+  }
+
+  .gradient-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/gradient-background-compressed.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    z-index: -2;
+  }
+
+  .gradient-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: hsl(0 0% 0% / 0.05);
+    z-index: 1;
+  }
+
+  .main-card {
+    width: 100%;
+    max-width: 800px;
+    height: calc(100vh - 5rem);
+    min-height: calc(100vh - 5rem);
+    background: hsl(0 0% 0% / 0.80);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--color-border-subtle);
+    border-radius: 24px;
+    box-shadow: 0 8px 30px hsl(0 0% 0% / 0.2), 0 4px 10px hsl(0 0% 0% / 0.12);
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+    align-items: stretch;
+  }
+
+  .content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Make the card content scrollable if needed */
+  .content-area :global(main) {
+    flex: 1;
+    padding: 3rem 4rem;
+    overflow-y: auto;
+    max-width: 65ch;
+    margin: 0 auto;
+  }
+
+  /* Ensure footer stays at bottom */
+  .content-area :global(footer) {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding: 0 2rem 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .main-card {
+      min-height: calc(100vh - 5rem);
+      border-radius: 16px;
+      flex-direction: column;
+    }
+
+    .content-area :global(main) {
+      padding: 1.5rem 2rem 4.5rem; /* bottom space for mobile nav */
+    }
+
+    .content-area :global(footer) {
+      padding: 0 1.5rem 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .card-wrapper {
+      padding: 1rem 0.5rem;
+    }
+
+    .main-card {
+      min-height: calc(100vh - 3rem);
+      border-radius: 12px;
+    }
+
+    .content-area :global(main) {
+      padding: 1rem 1.5rem;
+    }
+
+    .content-area :global(footer) {
+      padding: 0 1rem 1rem;
+    }
+  }
+</style>

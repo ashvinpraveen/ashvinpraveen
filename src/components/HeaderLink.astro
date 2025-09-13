@@ -17,8 +17,9 @@ const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
 		display: inline-block;
 		text-decoration: none;
 	}
-	a.active {
-		font-weight: bolder;
-		text-decoration: underline;
-	}
+a.active {
+	/* No bold or underline on active; color handled by parent */
+	font-weight: inherit;
+	text-decoration: none;
+}
 </style>

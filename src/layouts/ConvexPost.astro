@@ -1,0 +1,48 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import CardLayout from '../components/CardLayout.astro';
+import FormattedDate from '../components/FormattedDate.astro';
+import { marked } from 'marked';
+
+interface Props {
+  title: string;
+  description?: string;
+  createdAt?: number;
+  updatedAt?: number;
+  content: string; // markdown
+}
+
+const { title, description = '', createdAt, updatedAt, content } = Astro.props;
+const html = marked.parse(content || '');
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <BaseHead title={title} description={description} />
+    <style>
+      main { width: 100%; max-width: 100%; margin: 0; }
+      .header { padding: 1rem 1.5rem 0.75rem; max-width: 72ch; margin: 0 auto; color: var(--typography-body); }
+      .post-title { margin: 0; line-height: 1.15; color: var(--typography-heading-primary); }
+      .post-content { padding: 1.25rem 1.5rem 2rem; max-width: 72ch; margin: 0 auto; color: var(--typography-body); }
+      .date { margin-bottom: 0.5rem; color: var(--typography-muted); }
+      .last-updated-on { font-style: italic; color: var(--typography-subtle); }
+    </style>
+  </head>
+  <body>
+    <CardLayout>
+      <main>
+        <article>
+          <div class="header prose">
+            <div class="date">
+              {createdAt && (<FormattedDate date={new Date(createdAt)} />)}
+              {updatedAt && (<span class="last-updated-on"> • Updated <FormattedDate date={new Date(updatedAt)} /></span>)}
+            </div>
+            <h1 class="post-title">{title}</h1>
+          </div>
+          <div class="post-content prose" set:html={html} />
+        </article>
+      </main>
+    </CardLayout>
+  </body>
+</html>
+

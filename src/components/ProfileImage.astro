@@ -1,0 +1,35 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+
+interface Props {
+  src?: string; // fallback to public/ path
+  alt?: string;
+  size?: number;
+  image?: ImageMetadata; // preferred: imported from src/assets for optimization
+}
+
+const { src = '/images/profile.png', alt = 'Profile photo', size = 120, image } = Astro.props as Props;
+---
+
+<figure class="profile" style={`--size:${size}px`}>
+  {image ? (
+    <Image src={image} alt={alt} width={size} height={size} class="avatar" />
+  ) : (
+    <img src={src} alt={alt} width={size} height={size} loading="lazy" decoding="async" class="avatar" />
+  )}
+</figure>
+
+<style>
+  .profile { margin: 0; }
+  .avatar {
+    display: block;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 1px solid var(--color-quote-border);
+    box-shadow: 0 8px 24px hsl(0 0% 0% / 0.35);
+    background: hsl(0 0% 100% / 0.05);
+  }
+</style>

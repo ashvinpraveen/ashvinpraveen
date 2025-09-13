@@ -1,20 +1,23 @@
 ---
-import { type CollectionEntry, getCollection, render } from 'astro:content';
-import BlogPost from '../../layouts/BlogPost.astro';
+import ConvexPost from '../../layouts/ConvexPost.astro';
+import BaseHead from '../../components/BaseHead.astro';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
 
-export async function getStaticPaths() {
-	const posts = await getCollection('blog');
-	return posts.map((post) => ({
-		params: { slug: post.id },
-		props: post,
-	}));
-}
-type Props = CollectionEntry<'blog'>;
-
-const post = Astro.props;
-const { Content } = await render(post);
+const slug = Astro.params.slug as string;
+const siteSlug = import.meta.env.DEFAULT_SITE_SLUG || '';
+let post: any = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  if (siteSlug && slug) {
+    post = await client.query(api.posts.getBySlug, { siteSlug, slug });
+  }
+} catch {}
 ---
 
-<BlogPost {...post.data}>
-	<Content />
-</BlogPost>
+{!post ? (
+  <html lang="en"><head><BaseHead title="Not found" description="" /></head><body><p>Post not found.</p></body></html>
+) : (
+  <ConvexPost title={post.title} description={post.description} createdAt={post.createdAt} updatedAt={post.updatedAt} content={post.content} />
+)}

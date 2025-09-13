@@ -6,13 +6,59 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "check": "astro check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx,.astro",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx,.astro --fix"
   },
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {},
+  "optionalDependencies": {},
+  "peerDependencies": {},
+  "keywords": [],
+  "license": "UNLICENSED",
+  "private": true,
   "dependencies": {
     "@astrojs/mdx": "^4.3.5",
+    "@astrojs/react": "^4.3.1",
     "@astrojs/rss": "^4.0.12",
     "@astrojs/sitemap": "^3.5.1",
+    "@astrojs/tailwind": "^6.0.2",
+    "@clerk/astro": "^2.13.0",
+    "@fontsource/geist-sans": "^5.2.5",
+    "@fontsource/inter": "^5.2.6",
+    "@fontsource/jetbrains-mono": "^5.2.6",
+    "@iconify-json/simple-icons": "^1.2.51",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/react": "^19.1.12",
+    "@types/react-dom": "^19.1.9",
     "astro": "^5.13.7",
-    "sharp": "^0.34.3"
+    "astro-icon": "^1.1.5",
+    "autoprefixer": "^10.4.21",
+    "convex": "^1.16.1",
+    "gray-matter": "^4.0.3",
+    "marked": "^15.0.11",
+    "lucide-react": "^0.544.0",
+    "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "sharp": "^0.34.3",
+    "tailwindcss": "^3.4.17"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.4",
+    "@typescript-eslint/eslint-plugin": "^8.43.0",
+    "@typescript-eslint/parser": "^8.43.0",
+    "eslint": "^9.35.0",
+    "eslint-plugin-astro": "^1.3.1",
+    "prettier": "^3.6.2",
+    "prettier-plugin-astro": "^0.14.1",
+    "prettier-plugin-tailwindcss": "^0.6.14"
   }
 }

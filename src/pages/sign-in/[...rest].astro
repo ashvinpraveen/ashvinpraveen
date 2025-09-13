@@ -1,0 +1,17 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import { SignIn as ClerkSignIn } from "@clerk/astro/components";
+export const prerender = false;
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Sign in" description="Sign in to your dashboard" />
+  </head>
+  <body>
+    <main style="display:flex;min-height:60vh;align-items:center;justify-content:center;padding:2rem;">
+      <ClerkSignIn routing="path" path="/sign-in" signUpUrl="/sign-up" />
+    </main>
+  </body>
+</html>
+

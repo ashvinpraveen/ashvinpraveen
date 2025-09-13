@@ -1,0 +1,17 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import { SignUp as ClerkSignUp } from "@clerk/astro/components";
+export const prerender = false;
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Sign up" description="Create an account" />
+  </head>
+  <body>
+    <main style="display:flex;min-height:60vh;align-items:center;justify-content:center;padding:2rem;">
+      <ClerkSignUp routing="path" path="/sign-up" signInUrl="/sign-in" />
+    </main>
+  </body>
+</html>
+

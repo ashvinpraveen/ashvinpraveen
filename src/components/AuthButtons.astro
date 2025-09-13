@@ -1,0 +1,26 @@
+---
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from '@clerk/astro/components';
+---
+
+<div class="auth-buttons">
+  <SignedOut>
+    <SignInButton>
+      <button class="btn">Sign in</button>
+    </SignInButton>
+    <SignUpButton>
+      <button class="btn btn-secondary">Sign up</button>
+    </SignUpButton>
+  </SignedOut>
+  <SignedIn>
+    <a href="/app" class="btn btn-link">Dashboard</a>
+    <UserButton afterSignOutUrl="/" />
+  </SignedIn>
+</div>
+
+<style>
+.auth-buttons { display: flex; gap: 0.5rem; align-items: center; }
+.btn { font-size: 0.85rem; padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border-subtle); background: hsl(0 0% 100% / 0.04); color: var(--typography-link-hover); transition: background 0.2s ease; }
+.btn:hover { background: hsl(0 0% 100% / 0.08); }
+.btn-secondary { opacity: 0.9; }
+.btn-link { text-decoration: none; padding: 0.25rem 0.5rem; }
+</style>

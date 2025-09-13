@@ -1,25 +1,30 @@
 ---
 import { Image } from 'astro:assets';
-import { getCollection } from 'astro:content';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 import BaseHead from '../../components/BaseHead.astro';
-import Footer from '../../components/Footer.astro';
+import CardLayout from '../../components/CardLayout.astro';
+// Footer removed
 import FormattedDate from '../../components/FormattedDate.astro';
-import Header from '../../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+export const prerender = false;
 
-const posts = (await getCollection('blog')).sort(
-	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
-);
+let posts: any[] = [];
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const siteSlug = import.meta.env.DEFAULT_SITE_SLUG || '';
+  if (siteSlug) {
+    posts = await client.query(api.posts.listBySite, { siteSlug });
+  }
+} catch {}
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 	<head>
 		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
 		<style>
-			main {
-				width: 960px;
-			}
+			main { width: 100%; max-width: 100%; }
 			ul {
 				display: flex;
 				flex-wrap: wrap;
@@ -35,16 +40,12 @@ const posts = (await getCollection('blog')).sort(
 				text-decoration: none;
 				transition: 0.2s ease;
 			}
-			ul li:first-child {
-				width: 100%;
-				margin-bottom: 1rem;
-				text-align: center;
-			}
+			ul li:first-child { width: 100%; margin-bottom: 1rem; text-align: center; }
 			ul li:first-child img {
 				width: 100%;
 			}
 			ul li:first-child .title {
-				font-size: 2.369rem;
+				/* Uses global h4 size */
 			}
 			ul li img {
 				margin-bottom: 0.5rem;
@@ -52,22 +53,19 @@ const posts = (await getCollection('blog')).sort(
 			}
 			ul li a {
 				display: block;
+				border-radius: 12px;
+				color: inherit;
+				overflow: hidden;
 			}
-			.title {
-				margin: 0;
-				color: rgb(var(--black));
-				line-height: 1;
-			}
-			.date {
-				margin: 0;
-				color: rgb(var(--gray));
-			}
-			ul li a:hover h4,
-			ul li a:hover .date {
-				color: rgb(var(--accent));
-			}
-			ul a:hover img {
-				box-shadow: var(--box-shadow);
+			ul li a .meta { padding: 0.75rem 0.9rem 0.9rem; }
+			ul li a .title { margin: 0 0 0.25rem 0; }
+			.title { margin: 0; line-height: 1.15; }
+			.date { margin: 0; }
+			/* Clean hover: white outline + subtle background */
+			ul li a { transition: box-shadow .2s ease, background-color .2s ease; }
+			ul li a:hover {
+				box-shadow: 0 0 0 3px hsl(0 0% 100% / 0.9);
+				background: hsl(0 0% 100% / 0.04);
 			}
 			@media (max-width: 720px) {
 				ul {
@@ -81,34 +79,34 @@ const posts = (await getCollection('blog')).sort(
 					margin-bottom: 0;
 				}
 				ul li:first-child .title {
-					font-size: 1.563em;
+					/* Uses global h4 size */
 				}
 			}
 		</style>
 	</head>
 	<body>
-		<Header />
-		<main>
-			<section>
-				<ul>
-					{
-						posts.map((post) => (
-							<li>
-								<a href={`/blog/${post.id}/`}>
-									{post.data.heroImage && (
-										<Image width={720} height={360} src={post.data.heroImage} alt="" />
-									)}
-									<h4 class="title">{post.data.title}</h4>
-									<p class="date">
-										<FormattedDate date={post.data.pubDate} />
-									</p>
-								</a>
-							</li>
-						))
-					}
-				</ul>
-			</section>
-		</main>
-		<Footer />
+		<CardLayout>
+			<main>
+				<section>
+					<h1>Blog</h1>
+					<ul>
+						{
+							posts.map((post) => (
+								<li>
+									<a href={`/blog/${post.slug}/`}>
+										<div class="meta">
+											<h4 class="title">{post.title}</h4>
+											<p class="date">
+												{post.publishedAt ? <FormattedDate date={new Date(post.publishedAt)} /> : null}
+											</p>
+										</div>
+									</a>
+								</li>
+							))
+						}
+					</ul>
+				</section>
+			</main>
+		</CardLayout>
 	</body>
 </html>

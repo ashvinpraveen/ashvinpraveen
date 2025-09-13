@@ -1,0 +1,48 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+export async function getStaticPaths() {
+  // Keeping this dynamic; do not prerender
+  return [];
+}
+export const prerender = false;
+const { slug } = Astro.params;
+
+// Try to pull posts via local API placeholder
+let site = null;
+let posts: any[] = [];
+try {
+  const res = await fetch(Astro.url.origin + `/api/sites/${slug}`);
+  if (res.ok) {
+    const data = await res.json();
+    site = data.site;
+    posts = data.posts ?? [];
+  }
+} catch (e) {}
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title={site?.name ?? `${slug}'s Site`} description="Personal site" />
+  </head>
+  <body>
+    <Header />
+    <main class="container">
+      <h1>{site?.name ?? `${slug}'s Site`}</h1>
+      {posts.length === 0 ? (
+        <p>No posts yet. This route will display content from Convex once configured.</p>
+      ) : (
+        <ul class="posts">
+          {posts.map((p) => (
+            <li><a href={`/u/${slug}/${p.slug}`}>{p.title}</a></li>
+          ))}
+        </ul>
+      )}
+    </main>
+  </body>
+</html>
+
+<style>
+.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+.posts { display: grid; gap: 0.5rem; }
+</style>

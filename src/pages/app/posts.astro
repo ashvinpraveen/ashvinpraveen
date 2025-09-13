@@ -1,0 +1,65 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+if (!user) return Astro.redirect('/sign-in');
+
+let posts: any[] = [];
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+  const site = Array.isArray(sites) && sites[0] || null;
+  if (site) posts = await client.query(api.posts.listBySite, { siteSlug: site.slug });
+} catch {}
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Your Posts" description="Manage your posts" />
+  </head>
+  <body>
+    <Header />
+    <main class="container">
+      <h1>Your Posts</h1>
+      <p><a class="btn" href="/app/editor">New Post</a></p>
+      {posts.length === 0 ? (
+        <p>No posts yet.</p>
+      ) : (
+        <ul class="list">
+          {posts.map((p) => (
+            <li>
+              <div>
+                <b>{p.title}</b>
+                <span class="muted">/{p.slug}</span>
+              </div>
+              <div class="actions">
+                <form method="post" action="/api/posts/publish" onsubmit="return confirm('Toggle publish?')">
+                  <input type="hidden" name="slug" value={p.slug} />
+                  <button type="submit">{p.published ? 'Unpublish' : 'Publish'}</button>
+                </form>
+                <form method="post" action="/api/posts/delete" onsubmit="return confirm('Delete this post?')">
+                  <input type="hidden" name="slug" value={p.slug} />
+                  <button type="submit">Delete</button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </main>
+  </body>
+</html>
+
+<style>
+.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+.list { display: grid; gap: .5rem; }
+.list li { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; border: 1px solid var(--color-border-subtle); border-radius: 10px; }
+.muted { opacity: .8; margin-left: .25rem; }
+.actions { display: flex; gap: .5rem; }
+.btn { display:inline-block; padding:.5rem .75rem; border:1px solid var(--color-border-subtle); border-radius:8px; text-decoration:none; }
+</style>
+

@@ -1,0 +1,51 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+if (!user) {
+  return Astro.redirect("/sign-in");
+}
+
+// Ensure user + default site exists in Convex
+let siteLink: string | null = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const preferredUsername = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || undefined;
+  await client.mutation(api.sites.upsertUser, { clerkUserId: user.id, username: preferredUsername });
+  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+  const first = Array.isArray(sites) && sites.length > 0 ? sites[0] : null;
+  siteLink = first ? `/u/${first.slug}` : null;
+} catch (e) {
+  // Convex not initialized yet or URL missing: keep dashboard minimal
+}
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Dashboard" description="Your personal site dashboard" />
+  </head>
+  <body>
+    <Header />
+    <main class="container">
+      <h1>Welcome, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress}</h1>
+      <p>From here you can edit your site and write posts.</p>
+      <div class="actions">
+        <a class="card" href="/app/editor">Open Editor</a>
+        <a class="card" href="/app/posts">Manage Posts</a>
+        <a class="card" href="/app/pages">Pages (Home/About)</a>
+        {siteLink && (<a class="card" href={siteLink}>View Your Site</a>)}
+      </div>
+    </main>
+  </body>
+</html>
+
+<style>
+.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+.actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 1rem; margin-top: 1rem; }
+.card { display:block; padding:1rem; border-radius:12px; border:1px solid var(--color-border-subtle); background: hsl(0 0% 100% / 0.03); text-decoration:none; color: var(--typography-link-hover); }
+.card:hover { background: hsl(0 0% 100% / 0.06); }
+</style>

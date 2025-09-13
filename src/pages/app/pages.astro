@@ -1,0 +1,73 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+if (!user) return Astro.redirect('/sign-in');
+
+let siteSlug: string | null = null;
+let about: any = null;
+let home: any = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+  const site = Array.isArray(sites) && sites[0] || null;
+  siteSlug = site?.slug || null;
+  if (siteSlug) {
+    [about, home] = await Promise.all([
+      client.query(api.pages.getByKey, { siteSlug, key: 'about' }),
+      client.query(api.pages.getByKey, { siteSlug, key: 'home' }),
+    ]);
+  }
+} catch {}
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Pages" description="Edit About and Home content" />
+  </head>
+  <body>
+    <Header />
+    <main class="container">
+      <h1>Pages</h1>
+      {!siteSlug ? (
+        <p>Site not ready yet.</p>
+      ) : (
+        <div class="grid">
+          <section>
+            <h2>Home</h2>
+            <form method="post" action="/api/pages/upsert">
+              <input type="hidden" name="key" value="home" />
+              <label>Title<input name="title" value={home?.title || 'Home'} /></label>
+              <label>Content (Markdown)<textarea name="content" rows="10">{home?.content || ''}</textarea></label>
+              <button type="submit">Save</button>
+            </form>
+          </section>
+          <section>
+            <h2>About</h2>
+            <form method="post" action="/api/pages/upsert">
+              <input type="hidden" name="key" value="about" />
+              <label>Title<input name="title" value={about?.title || 'About'} /></label>
+              <label>Content (Markdown)<textarea name="content" rows="10">{about?.content || ''}</textarea></label>
+              <button type="submit">Save</button>
+            </form>
+          </section>
+        </div>
+      )}
+    </main>
+  </body>
+</html>
+
+<style>
+.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap: 1rem; }
+form { display: grid; gap: 0.5rem; }
+label { display: grid; gap: 0.25rem; }
+input, textarea { width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border-subtle); background: rgba(255,255,255,0.03); color: inherit; }
+button { width: fit-content; padding: 0.6rem 0.9rem; border-radius: 8px; border: 1px solid var(--color-border-subtle); background: rgba(255,255,255,0.04); color: inherit; }
+button:hover { background: rgba(255,255,255,0.08); }
+</style>
+

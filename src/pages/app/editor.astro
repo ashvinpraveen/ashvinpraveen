@@ -1,0 +1,70 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+if (!user) {
+  return Astro.redirect("/sign-in");
+}
+---
+
+<html lang="en">
+  <head>
+    <BaseHead title="Editor" description="Create and edit your posts" />
+  </head>
+  <body>
+    <Header />
+    <main class="container">
+      <h1>New Post</h1>
+      <form id="post-form">
+        <label>
+          <span>Title</span>
+          <input name="title" required />
+        </label>
+        <label>
+          <span>Slug</span>
+          <input name="slug" required pattern="[a-z0-9-]+" />
+        </label>
+        <label>
+          <span>Content (Markdown)</span>
+          <textarea name="content" rows="10" required></textarea>
+        </label>
+        <button type="submit">Create Post</button>
+        <p id="status" role="status"></p>
+      </form>
+    </main>
+    <script>
+      const form = document.getElementById('post-form') as HTMLFormElement | null;
+      const status = document.getElementById('status') as HTMLParagraphElement | null;
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        status && (status.textContent = 'Saving…');
+        const f = e.currentTarget as HTMLFormElement;
+        const data = Object.fromEntries(new FormData(f));
+        const res = await fetch('/api/posts/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok) {
+          status && (status.textContent = 'Post created!');
+          f.reset();
+        } else {
+          status && (status.textContent = body?.error || 'Failed to save');
+        }
+      });
+    </script>
+  </body>
+  </html>
+
+<style>
+.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+form { display: grid; gap: 0.75rem; }
+label { display: grid; gap: 0.25rem; }
+input, textarea { width: 100%; padding: 0.6rem 0.75rem; border-radius: 8px; border: 1px solid var(--color-border-subtle); background: hsl(0 0% 100% / 0.03); color: inherit; }
+button { width: fit-content; padding: 0.6rem 0.9rem; border-radius: 8px; border: 1px solid var(--color-border-subtle); background: hsl(0 0% 100% / 0.04); color: inherit; }
+button:hover { background: hsl(0 0% 100% / 0.08); }
+#status { min-height: 1.25rem; opacity: 0.9; }
+</style>
