@@ -1,0 +1,361 @@
+---
+export interface Props {
+  isOwner: boolean;
+}
+
+const { isOwner } = Astro.props;
+---
+
+{isOwner && (
+  <div id="global-edit-toggle" class="edit-toggle">
+    <button id="edit-mode-btn" class="toggle-btn" data-mode="view">
+      <div class="toggle-icon" id="edit-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </div>
+      <div class="toggle-icon" id="view-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      </div>
+    </button>
+    <div class="tooltip">
+      <span id="tooltip-text">Switch to edit mode</span>
+    </div>
+  </div>
+)}
+
+<style>
+  .edit-toggle {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1000;
+    font-family: inherit;
+  }
+
+  .toggle-btn {
+    position: relative;
+    width: 72px;
+    height: 36px;
+    background: hsl(0 0% 0% / 0.3);
+    border: 1px solid hsl(0 0% 100% / 0.15);
+    border-radius: 18px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .toggle-btn:hover {
+    background: hsl(0 0% 0% / 0.4);
+    border-color: hsl(0 0% 100% / 0.25);
+  }
+
+  .toggle-btn::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 30px;
+    height: 30px;
+    background: hsl(0 0% 100% / 0.9);
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px hsl(0 0% 0% / 0.2);
+  }
+
+  .toggle-btn[data-mode="edit"]::before {
+    transform: translateX(36px);
+  }
+
+  .toggle-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    transition: all 0.3s ease;
+  }
+
+  .toggle-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: hsl(0 0% 40%);
+    transition: all 0.3s ease;
+  }
+
+  /* View mode - show eye icon (left side) */
+  #view-icon {
+    left: 8px;
+    opacity: 1;
+  }
+
+  /* Edit mode - show edit icon (right side) */
+  #edit-icon {
+    right: 8px;
+    opacity: 0.4;
+  }
+
+  .toggle-btn[data-mode="edit"] #view-icon {
+    opacity: 0.4;
+  }
+
+  .toggle-btn[data-mode="edit"] #edit-icon {
+    opacity: 1;
+  }
+
+  .tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: hsl(0 0% 0% / 0.8);
+    color: hsl(0 0% 100% / 0.9);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid hsl(0 0% 0% / 0.8);
+  }
+
+  .toggle-btn:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Mobile responsiveness */
+  @media (max-width: 768px) {
+    .edit-toggle {
+      bottom: 1.5rem;
+      right: 1.5rem;
+    }
+
+    .toggle-btn {
+      width: 64px;
+      height: 32px;
+      border-radius: 16px;
+    }
+
+    .toggle-btn::before {
+      width: 26px;
+      height: 26px;
+      top: 2px;
+      left: 2px;
+    }
+
+    .toggle-btn[data-mode="edit"]::before {
+      transform: translateX(32px);
+    }
+
+    .toggle-icon {
+      width: 14px;
+      height: 14px;
+    }
+
+    .toggle-icon svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    #view-icon {
+      left: 6px;
+    }
+
+    #edit-icon {
+      right: 6px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .edit-toggle {
+      bottom: 1rem;
+      right: 1rem;
+    }
+  }
+</style>
+
+<script is:inline>
+  let isEditMode = false;
+  let saveTimeout;
+
+  function initializeGlobalEditToggle() {
+    const toggleBtn = document.getElementById('edit-mode-btn');
+    const tooltipText = document.getElementById('tooltip-text');
+
+    if (!toggleBtn) return;
+
+    // Load saved edit mode state
+    const savedMode = localStorage.getItem('editMode') === 'true';
+    if (savedMode) {
+      enterEditMode();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (isEditMode) {
+        exitEditMode();
+      } else {
+        enterEditMode();
+      }
+    });
+
+    function enterEditMode() {
+      isEditMode = true;
+
+      // Update button state
+      toggleBtn.setAttribute('data-mode', 'edit');
+      tooltipText.textContent = 'Switch to view mode';
+
+      // Add global edit class to body
+      document.body.classList.add('global-edit-mode');
+
+      // Enable all editable elements
+      const editableElements = document.querySelectorAll('.editable-text, .editable-link');
+      editableElements.forEach(element => {
+        element.contentEditable = true;
+        element.classList.add('editing-active');
+      });
+
+      // Save state
+      localStorage.setItem('editMode', 'true');
+
+      // Dispatch custom event for other components
+      window.dispatchEvent(new CustomEvent('editModeChanged', {
+        detail: { isEditMode: true }
+      }));
+    }
+
+    function exitEditMode() {
+      isEditMode = false;
+
+      // Update button state
+      toggleBtn.setAttribute('data-mode', 'view');
+      tooltipText.textContent = 'Switch to edit mode';
+
+      // Remove global edit class from body
+      document.body.classList.remove('global-edit-mode');
+
+      // Disable all editable elements and save changes
+      const editableElements = document.querySelectorAll('.editable-text, .editable-link');
+      const changes = {};
+
+      editableElements.forEach(element => {
+        element.contentEditable = false;
+        element.classList.remove('editing-active');
+
+        const field = element.dataset.field;
+        if (field) {
+          changes[field] = element.textContent.trim();
+        }
+      });
+
+      // Save changes if any
+      if (Object.keys(changes).length > 0) {
+        saveChanges(changes);
+      }
+
+      // Save state
+      localStorage.setItem('editMode', 'false');
+
+      // Dispatch custom event
+      window.dispatchEvent(new CustomEvent('editModeChanged', {
+        detail: { isEditMode: false }
+      }));
+    }
+
+    function saveChanges(changes) {
+      // Show saving state
+      toggleBtn.disabled = true;
+
+      // Get current page slug
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      const siteSlug = pathParts[0] || '';
+
+      fetch('/api/profile/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          siteSlug: siteSlug,
+          changes: changes
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        // Show success
+        showNotification('Changes saved successfully!', 'success');
+      })
+      .catch(error => {
+        console.error('Save error:', error);
+        showNotification('Failed to save changes', 'error');
+      })
+      .finally(() => {
+        toggleBtn.disabled = false;
+      });
+    }
+
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `notification notification-${type}`;
+      notification.textContent = message;
+      notification.style.cssText = `
+        position: fixed;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 1001;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        ${type === 'success' ? 'background: hsl(120 100% 40%);' : 'background: hsl(0 100% 50%);'}
+      `;
+
+      document.body.appendChild(notification);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        notification.style.transform = 'translateX(0)';
+      });
+
+      // Auto-remove
+      setTimeout(() => {
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => notification.remove(), 300);
+      }, 3000);
+    }
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeGlobalEditToggle);
+  } else {
+    initializeGlobalEditToggle();
+  }
+</script>

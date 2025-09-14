@@ -1,6 +1,7 @@
 ---
 import BaseHead from "../components/BaseHead.astro";
 import CardLayout from "../components/CardLayout.astro";
+import GlobalEditToggle from "../components/GlobalEditToggle.astro";
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
 
@@ -70,20 +71,20 @@ const profileData = {
               />
             </div>
             <div class="profile-details">
-              <h1 class="text-3xl md:text-4xl font-bold text-white/95 mb-2 editable-text" contenteditable={isOwner} data-field="name">
+              <h1 class="text-3xl md:text-4xl font-bold text-white/95 mb-2 editable-text" contenteditable="false" data-field="name">
                 {profileData.name}
               </h1>
-              <p class="text-lg text-white/80 mb-4 editable-text" contenteditable={isOwner} data-field="bio">
+              <p class="text-lg text-white/80 mb-4 editable-text" contenteditable="false" data-field="bio">
                 {profileData.bio}
               </p>
               <div class="profile-meta">
                 {profileData.location && (
-                  <span class="meta-item editable-text" contenteditable={isOwner} data-field="location">
+                  <span class="meta-item editable-text" contenteditable="false" data-field="location">
                     📍 {profileData.location}
                   </span>
                 )}
                 {profileData.website && (
-                  <a href={profileData.website} class="meta-item link editable-text" contenteditable={isOwner} data-field="website">
+                  <a href={profileData.website} class="meta-item link editable-text" contenteditable="false" data-field="website">
                     🌐 {profileData.website}
                   </a>
                 )}
@@ -91,14 +92,6 @@ const profileData = {
             </div>
           </div>
 
-          {isOwner && (
-            <div class="edit-controls">
-              <button id="edit-toggle" class="edit-btn">
-                <span id="edit-icon">✏️</span>
-                <span id="edit-text">Edit Profile</span>
-              </button>
-            </div>
-          )}
         </div>
 
         <!-- Social Links -->
@@ -113,7 +106,7 @@ const profileData = {
                   {platform === 'github' && '💻'}
                 </div>
                 <span class="social-label">{platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
-                <span class="social-url editable-text" contenteditable={isOwner} data-field={`social.${platform}`}>
+                <span class="social-url editable-text" contenteditable="false" data-field={`social.${platform}`}>
                   {url}
                 </span>
               </a>
@@ -134,18 +127,18 @@ const profileData = {
             {profileData.projects.map((project) => (
               <div class="project-card" data-project-id={project.id}>
                 <div class="project-header">
-                  <h3 class="project-title editable-text" contenteditable={isOwner} data-field={`project.${project.id}.title`}>
+                  <h3 class="project-title editable-text" contenteditable="false" data-field={`project.${project.id}.title`}>
                     {project.title}
                   </h3>
                   <span class={`project-status status-${project.status.toLowerCase().replace(' ', '-')}`}>
                     {project.status}
                   </span>
                 </div>
-                <p class="project-description editable-text" contenteditable={isOwner} data-field={`project.${project.id}.description`}>
+                <p class="project-description editable-text" contenteditable="false" data-field={`project.${project.id}.description`}>
                   {project.description}
                 </p>
                 <div class="project-footer">
-                  <a href={project.url} class="project-link editable-text" contenteditable={isOwner} data-field={`project.${project.id}.url`}>
+                  <a href={project.url} class="project-link editable-text" contenteditable="false" data-field={`project.${project.id}.url`}>
                     View Project →
                   </a>
                   {isOwner && (
@@ -196,130 +189,33 @@ const profileData = {
           </div>
         )}
       </main>
+
     </CardLayout>
-    <script define:vars={{ slug, isOwner }}>
-      let isEditing = false;
-      const siteSlug = slug;
-      let changeTimeout;
 
-      // Initialize edit functionality
+    <!-- Global Edit Toggle (outside the card) -->
+    <GlobalEditToggle isOwner={isOwner} />
+    <script is:inline define:vars={{ slug, isOwner }}>
+      // Listen for global edit mode changes
       if (isOwner) {
-        const editToggle = document.getElementById('edit-toggle');
-        const editableElements = document.querySelectorAll('.editable-text');
+        window.addEventListener('editModeChanged', function(event) {
+          const { isEditMode } = event.detail;
 
-        editToggle?.addEventListener('click', function() {
-          isEditing = !isEditing;
+          // Update add project button visibility based on edit mode
+          const addProjectBtn = document.getElementById('add-project-btn');
+          if (addProjectBtn) {
+            addProjectBtn.style.display = isEditMode ? 'flex' : 'none';
+          }
 
-          if (isEditing) {
-            enterEditMode();
-          } else {
-            exitEditMode();
+          // Update add social button visibility based on edit mode
+          const addSocialBtn = document.getElementById('add-social-btn');
+          if (addSocialBtn) {
+            addSocialBtn.style.display = isEditMode ? 'flex' : 'none';
           }
         });
 
-        function enterEditMode() {
-          // Update button
-          document.getElementById('edit-icon').textContent = '💾';
-          document.getElementById('edit-text').textContent = 'Save Changes';
-
-          // Add editing class to body for global styling
-          document.body.classList.add('editing-mode');
-
-          // Enable editing on all editable elements
-          editableElements.forEach(element => {
-            element.classList.add('editing-active');
-          });
-
-          // Add instructions
-          showEditInstructions();
-        }
-
-        function exitEditMode() {
-          // Update button
-          document.getElementById('edit-icon').textContent = '💾';
-          document.getElementById('edit-text').textContent = 'Saving...';
-          editToggle.disabled = true;
-
-          // Collect all changes
-          const changes = {};
-          editableElements.forEach(element => {
-            const field = element.dataset.field;
-            if (field) {
-              changes[field] = element.textContent.trim();
-            }
-          });
-
-          // Save changes
-          saveChanges(changes);
-        }
-
-        function showEditInstructions() {
-          const existingInstructions = document.getElementById('edit-instructions');
-          if (existingInstructions) return;
-
-          const instructions = document.createElement('div');
-          instructions.id = 'edit-instructions';
-          instructions.className = 'edit-instructions';
-          instructions.innerHTML = `
-            <p>✨ Edit mode active! Click on any text to start editing. Changes will be saved automatically.</p>
-          `;
-
-          editToggle.parentElement.appendChild(instructions);
-        }
-
-        function saveChanges(changes) {
-          fetch('/api/profile/save', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              siteSlug: siteSlug,
-              changes: changes
-            })
-          })
-          .then(response => response.json())
-          .then(data => {
-            // Reset UI
-            document.getElementById('edit-icon').textContent = '✏️';
-            document.getElementById('edit-text').textContent = 'Edit Profile';
-            editToggle.disabled = false;
-
-            document.body.classList.remove('editing-mode');
-            editableElements.forEach(element => {
-              element.classList.remove('editing-active');
-            });
-
-            // Remove instructions
-            document.getElementById('edit-instructions')?.remove();
-
-            // Show success message
-            showMessage('✅ Changes saved successfully!', 'success');
-          })
-          .catch(error => {
-            console.error('Save error:', error);
-
-            // Reset UI on error
-            document.getElementById('edit-icon').textContent = '✏️';
-            document.getElementById('edit-text').textContent = 'Edit Profile';
-            editToggle.disabled = false;
-
-            showMessage('❌ Failed to save changes. Please try again.', 'error');
-          });
-        }
-
-        function showMessage(text, type) {
-          const message = document.createElement('div');
-          message.className = `save-message ${type}`;
-          message.textContent = text;
-          editToggle.parentElement.appendChild(message);
-
-          setTimeout(() => message.remove(), 3000);
-        }
-
-        // Add project management
+        // Add project functionality
         document.getElementById('add-project-btn')?.addEventListener('click', function() {
-          if (isEditing) {
-            addNewProject();
-          }
+          addNewProject();
         });
 
         function addNewProject() {
@@ -330,16 +226,16 @@ const profileData = {
           newProject.className = 'project-card';
           newProject.innerHTML = `
             <div class="project-header">
-              <h3 class="project-title editable-text" contenteditable="true" data-field="project.new.title">
+              <h3 class="project-title editable-text" contenteditable="false" data-field="project.new.title">
                 New Project
               </h3>
               <span class="project-status status-in-development">In Development</span>
             </div>
-            <p class="project-description editable-text" contenteditable="true" data-field="project.new.description">
+            <p class="project-description editable-text" contenteditable="false" data-field="project.new.description">
               Describe your project here...
             </p>
             <div class="project-footer">
-              <a href="#" class="project-link editable-text" contenteditable="true" data-field="project.new.url">
+              <a href="#" class="project-link editable-text" contenteditable="false" data-field="project.new.url">
                 https://github.com/username/project
               </a>
               <button class="project-delete" onclick="this.parentElement.parentElement.remove()">
@@ -349,6 +245,14 @@ const profileData = {
           `;
 
           projectsGrid.insertBefore(newProject, addButton);
+
+          // Enable editing on the new elements if in edit mode
+          if (document.body.classList.contains('global-edit-mode')) {
+            newProject.querySelectorAll('.editable-text').forEach(element => {
+              element.contentEditable = true;
+              element.classList.add('editing-active');
+            });
+          }
         }
       }
     </script>
@@ -620,25 +524,61 @@ const profileData = {
     opacity: 1;
   }
 
-  /* Editing States */
-  .editing-mode .editable-text {
+  /* Global Edit Mode States */
+  .global-edit-mode .editable-text {
     background: hsl(235 100% 60% / 0.1);
     border: 2px dashed hsl(235 100% 60% / 0.3);
     border-radius: 8px;
     padding: 0.25rem 0.5rem;
     margin: -0.25rem -0.5rem;
     transition: all 0.2s ease;
+    cursor: text;
+    position: relative;
   }
 
-  .editing-mode .editable-text:hover {
+  .global-edit-mode .editable-text:hover {
     background: hsl(235 100% 60% / 0.15);
     border-color: hsl(235 100% 60% / 0.5);
   }
 
-  .editing-mode .editable-text:focus {
+  .global-edit-mode .editable-text:focus {
     outline: none;
     background: hsl(235 100% 60% / 0.2);
     border-color: hsl(235 100% 60%);
+  }
+
+  .global-edit-mode .editable-text:before {
+    content: '✏️';
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 12px;
+    background: hsl(235 100% 60%);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .global-edit-mode .editable-text:hover:before {
+    opacity: 1;
+  }
+
+  /* Hide add buttons by default, show in edit mode */
+  .add-project, .add-social {
+    display: none;
+  }
+
+  .global-edit-mode .add-project,
+  .global-edit-mode .add-social {
+    display: flex;
   }
 
   .edit-instructions {

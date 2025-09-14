@@ -1,6 +1,7 @@
 ---
 import BaseHead from '../../components/BaseHead.astro';
 import CardLayout from '../../components/CardLayout.astro';
+import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
@@ -33,34 +34,9 @@ const pageDescription = `Blog posts by ${slug}`;
 		<CardLayout>
 			<main>
 				<div class="page-header">
-					<h1 class="page-title" contenteditable={isOwner ? "true" : "false"} id="page-title">
+					<h1 class="page-title editable-text" contenteditable="false" data-field="blog-title" id="page-title">
 						{slug}'s Blog
 					</h1>
-					{isOwner && (
-						<div class="edit-controls">
-							<button class="new-post-btn" id="new-post-btn">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<circle cx="12" cy="12" r="10"/>
-									<line x1="12" y1="8" x2="12" y2="16"/>
-									<line x1="8" y1="12" x2="16" y2="12"/>
-								</svg>
-								New Post
-							</button>
-							<button class="edit-toggle" id="edit-toggle">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-									<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-								</svg>
-								<span id="edit-text">Edit Page</span>
-							</button>
-							<button class="save-btn" id="save-btn" style="display: none;">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<polyline points="20,6 9,17 4,12"></polyline>
-								</svg>
-								Save
-							</button>
-						</div>
-					)}
 				</div>
 
 				<div class="editor-container">
@@ -68,6 +44,7 @@ const pageDescription = `Blog posts by ${slug}`;
 				</div>
 			</main>
 		</CardLayout>
+		<GlobalEditToggle isOwner={isOwner} />
 
 		<style>
 			main {
@@ -95,59 +72,11 @@ const pageDescription = `Blog posts by ${slug}`;
 				transition: background 0.2s ease;
 			}
 
-			.page-title[contenteditable="true"]:hover {
+			.page-title.editing-active {
 				background: hsl(0 0% 100% / 0.05);
-			}
-
-			.edit-controls {
-				display: flex;
-				gap: 0.5rem;
-			}
-
-			.new-post-btn,
-			.edit-toggle,
-			.save-btn {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.5rem 1rem;
-				background: hsl(0 0% 100% / 0.1);
 				border: 1px solid hsl(0 0% 100% / 0.2);
-				border-radius: 8px;
-				color: hsl(0 0% 100% / 0.9);
-				cursor: pointer;
-				font-size: 0.875rem;
-				transition: all 0.2s ease;
 			}
 
-			.new-post-btn:hover,
-			.edit-toggle:hover,
-			.save-btn:hover {
-				background: hsl(0 0% 100% / 0.15);
-				border-color: hsl(0 0% 100% / 0.3);
-			}
-
-			.new-post-btn {
-				background: hsl(235 100% 60% / 0.2);
-				border-color: hsl(235 100% 60% / 0.4);
-				color: hsl(235 100% 80%);
-			}
-
-			.new-post-btn:hover {
-				background: hsl(235 100% 60% / 0.3);
-				border-color: hsl(235 100% 60% / 0.5);
-			}
-
-			.save-btn {
-				background: hsl(120 100% 40% / 0.2);
-				border-color: hsl(120 100% 40% / 0.4);
-				color: hsl(120 100% 80%);
-			}
-
-			.save-btn:hover {
-				background: hsl(120 100% 40% / 0.3);
-				border-color: hsl(120 100% 40% / 0.5);
-			}
 
 			.editor-container {
 				max-width: 65ch;
@@ -246,6 +175,14 @@ const pageDescription = `Blog posts by ${slug}`;
 					// Wait a bit more for scripts to load
 					setTimeout(initializeEditor, 500);
 				}
+
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					isEditMode = e.detail.isEditMode;
+					if (editor) {
+						editor.setEditable(isOwner && isEditMode);
+					}
+				});
 			});
 
 			function initializeEditor() {
@@ -262,7 +199,7 @@ const pageDescription = `Blog posts by ${slug}`;
 							}),
 						],
 						content: getInitialContent(),
-						editable: isOwner && isEditMode,
+						editable: false,
 						editorProps: {
 							attributes: {
 								class: 'tiptap-editor',
@@ -270,9 +207,11 @@ const pageDescription = `Blog posts by ${slug}`;
 						},
 					});
 
-					// Set up edit controls if user is owner
-					if (isOwner) {
-						setupEditControls();
+					// Set initial edit mode based on saved state
+					const savedMode = localStorage.getItem('editMode') === 'true';
+					if (savedMode && isOwner) {
+						isEditMode = true;
+						editor.setEditable(true);
 					}
 				} catch (error) {
 					console.error('Failed to initialize editor:', error);
@@ -294,97 +233,6 @@ const pageDescription = `Blog posts by ${slug}`;
 				`;
 			}
 
-			function setupEditControls() {
-				const newPostBtn = document.getElementById('new-post-btn');
-				const editToggle = document.getElementById('edit-toggle');
-				const saveBtn = document.getElementById('save-btn');
-				const editText = document.getElementById('edit-text');
-
-				// Handle new post button
-				newPostBtn?.addEventListener('click', function() {
-					// For now, we'll simulate creating a new post by clearing the editor and entering edit mode
-					const confirmCreate = confirm('Create a new blog post? (This will replace the current content in the editor)');
-
-					if (confirmCreate) {
-						// Clear editor and set new post content
-						editor?.commands.clearContent();
-						editor?.commands.setContent(`
-							<h1>Your New Blog Post</h1>
-							<p>Start writing your amazing blog post here...</p>
-						`);
-
-						// Enter edit mode
-						isEditMode = true;
-						editText.textContent = 'Cancel';
-						saveBtn.style.display = 'flex';
-						editor?.setEditable(true);
-
-						// Show feedback
-						newPostBtn.innerHTML = `
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<polyline points="20,6 9,17 4,12"></polyline>
-							</svg>
-							Post Created!
-						`;
-
-						// Reset button after a moment
-						setTimeout(() => {
-							newPostBtn.innerHTML = `
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<circle cx="12" cy="12" r="10"/>
-									<line x1="12" y1="8" x2="12" y2="16"/>
-									<line x1="8" y1="12" x2="16" y2="12"/>
-								</svg>
-								New Post
-							`;
-						}, 2000);
-					}
-				});
-
-				editToggle?.addEventListener('click', function() {
-					isEditMode = !isEditMode;
-
-					if (isEditMode) {
-						editText.textContent = 'Cancel';
-						saveBtn.style.display = 'flex';
-						editor?.setEditable(true);
-					} else {
-						editText.textContent = 'Edit';
-						saveBtn.style.display = 'none';
-						editor?.setEditable(false);
-					}
-				});
-
-				saveBtn?.addEventListener('click', function() {
-					// In a real app, this would save to a database
-					const content = editor?.getHTML();
-					console.log('Saving content:', content);
-
-					// Show saved state
-					saveBtn.innerHTML = `
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<polyline points="20,6 9,17 4,12"></polyline>
-						</svg>
-						Saved!
-					`;
-
-					// Reset after a moment
-					setTimeout(() => {
-						saveBtn.innerHTML = `
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<polyline points="20,6 9,17 4,12"></polyline>
-							</svg>
-							Save
-						`;
-					}, 2000);
-
-					// Exit edit mode
-					isEditMode = false;
-					editText.textContent = 'Edit';
-					saveBtn.style.display = 'none';
-					editor?.setEditable(false);
-				});
-			}
 		</script>
 	</body>
 </html>

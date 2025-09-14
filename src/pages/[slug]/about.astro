@@ -1,6 +1,7 @@
 ---
 import BaseHead from '../../components/BaseHead.astro';
 import CardLayout from '../../components/CardLayout.astro';
+import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
@@ -22,43 +23,16 @@ const pageDescription = `Learn more about ${slug}`;
 <html lang="en" data-theme="dark">
 	<head>
 		<BaseHead title={pageTitle} description={pageDescription} />
-		<script src="https://unpkg.com/@tiptap/core@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/pm@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/starter-kit@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/extension-placeholder@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/extension-link@2.1.16/dist/index.umd.min.js"></script>
 	</head>
 	<body>
 		<CardLayout>
 			<main>
-				<div class="page-header">
-					<h1 class="page-title" contenteditable={isOwner ? "true" : "false"} id="page-title">
-						About {slug}
-					</h1>
-					{isOwner && (
-						<div class="edit-controls">
-							<button class="edit-toggle" id="edit-toggle">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-									<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-								</svg>
-								<span id="edit-text">Edit</span>
-							</button>
-							<button class="save-btn" id="save-btn" style="display: none;">
-								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<polyline points="20,6 9,17 4,12"></polyline>
-								</svg>
-								Save
-							</button>
-						</div>
-					)}
-				</div>
-
 				<div class="editor-container">
 					<div id="editor" class="tiptap-editor"></div>
 				</div>
 			</main>
 		</CardLayout>
+		<GlobalEditToggle isOwner={isOwner} />
 
 		<style>
 			main {
@@ -66,77 +40,27 @@ const pageDescription = `Learn more about ${slug}`;
 				padding: 2rem;
 			}
 
-			.page-header {
-				display: flex;
-				align-items: center;
-				justify-content: space-between;
-				margin-bottom: 2rem;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid hsl(0 0% 100% / 0.1);
-			}
-
-			.page-title {
-				margin: 0;
-				font-size: 2rem;
-				font-weight: 700;
-				color: hsl(0 0% 100% / 0.97);
-				outline: none;
-				border-radius: 4px;
-				padding: 0.25rem 0.5rem;
-				transition: background 0.2s ease;
-			}
-
-			.page-title[contenteditable="true"]:hover {
-				background: hsl(0 0% 100% / 0.05);
-			}
-
-			.edit-controls {
-				display: flex;
-				gap: 0.5rem;
-			}
-
-			.edit-toggle,
-			.save-btn {
-				display: flex;
-				align-items: center;
-				gap: 0.5rem;
-				padding: 0.5rem 1rem;
-				background: hsl(0 0% 100% / 0.1);
-				border: 1px solid hsl(0 0% 100% / 0.2);
-				border-radius: 8px;
-				color: hsl(0 0% 100% / 0.9);
-				cursor: pointer;
-				font-size: 0.875rem;
-				transition: all 0.2s ease;
-			}
-
-			.edit-toggle:hover,
-			.save-btn:hover {
-				background: hsl(0 0% 100% / 0.15);
-				border-color: hsl(0 0% 100% / 0.3);
-			}
-
-			.save-btn {
-				background: hsl(120 100% 40% / 0.2);
-				border-color: hsl(120 100% 40% / 0.4);
-				color: hsl(120 100% 80%);
-			}
-
-			.save-btn:hover {
-				background: hsl(120 100% 40% / 0.3);
-				border-color: hsl(120 100% 40% / 0.5);
-			}
-
 			.editor-container {
-				max-width: 65ch;
-				margin: 0 auto;
+				max-width: none;
+				margin: 0;
 			}
 
 			.tiptap-editor {
-				min-height: 400px;
+				min-height: 500px;
 				outline: none;
 				color: hsl(0 0% 100% / 0.92);
 				line-height: 1.6;
+				text-align: left;
+				border: 1px dashed hsl(0 0% 100% / 0.2);
+				padding: 1rem;
+				border-radius: 8px;
+				transition: all 0.2s ease;
+			}
+
+			.tiptap-editor[contenteditable="true"] {
+				border-color: hsl(120 100% 50% / 0.5);
+				background: hsl(0 0% 100% / 0.02);
+				box-shadow: 0 0 0 1px hsl(120 100% 50% / 0.2);
 			}
 
 			.tiptap-editor p {
@@ -199,35 +123,52 @@ const pageDescription = `Learn more about ${slug}`;
 			}
 		</style>
 
-		<script define:vars={{ isOwner, slug }}>
+		<script type="module" define:vars={{ isOwner, slug }}>
+			import { Editor } from 'https://esm.sh/@tiptap/core@3.4.2'
+			import StarterKit from 'https://esm.sh/@tiptap/starter-kit@3.4.2'
+			import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@3.4.2'
+			import Link from 'https://esm.sh/@tiptap/extension-link@3.4.2'
+
 			let editor = null;
 			let isEditMode = false;
 
 			// Initialize editor when page loads
 			document.addEventListener('DOMContentLoaded', function() {
-				if (typeof window.TiptapCore !== 'undefined') {
-					initializeEditor();
-				} else {
-					// Wait a bit more for scripts to load
-					setTimeout(initializeEditor, 500);
-				}
+				console.log('DOM loaded, initializing TipTap editor...');
+				initializeEditor();
+
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					console.log('Edit mode changed:', e.detail.isEditMode);
+					console.log('isOwner:', isOwner);
+					isEditMode = e.detail.isEditMode;
+					if (editor) {
+						const shouldBeEditable = isOwner && isEditMode;
+						console.log('Setting editor editable:', shouldBeEditable);
+						editor.setEditable(shouldBeEditable);
+					} else {
+						console.log('Editor not available yet');
+					}
+				});
 			});
 
 			function initializeEditor() {
+				console.log('Initializing TipTap editor for about page...');
+				console.log('isOwner:', isOwner, 'slug:', slug);
 				try {
-					editor = new window.TiptapCore.Editor({
+					editor = new Editor({
 						element: document.querySelector('#editor'),
 						extensions: [
-							window.TiptapStarterKit.default,
-							window.TiptapExtensionPlaceholder.default.configure({
-								placeholder: isOwner ? 'Tell people about yourself...' : 'No about information yet.',
+							StarterKit,
+							Placeholder.configure({
+								placeholder: isOwner ? 'Start writing your about page...' : 'No about information yet.',
 							}),
-							window.TiptapExtensionLink.default.configure({
+							Link.configure({
 								openOnClick: false,
 							}),
 						],
 						content: getInitialContent(),
-						editable: isOwner && isEditMode,
+						editable: false,
 						editorProps: {
 							attributes: {
 								class: 'tiptap-editor',
@@ -235,79 +176,51 @@ const pageDescription = `Learn more about ${slug}`;
 						},
 					});
 
-					// Set up edit controls if user is owner
-					if (isOwner) {
-						setupEditControls();
+					console.log('TipTap editor initialized successfully');
+					console.log('Initial content:', getInitialContent());
+
+					// Set initial edit mode based on saved state
+					const savedMode = localStorage.getItem('editMode') === 'true';
+					if (savedMode && isOwner) {
+						isEditMode = true;
+						editor.setEditable(true);
+						console.log('Edit mode enabled from saved state');
 					}
 				} catch (error) {
 					console.error('Failed to initialize editor:', error);
-					// Fallback: show a simple text
-					document.querySelector('#editor').innerHTML = `
-						<div style="color: hsl(0 0% 100% / 0.6); text-align: center; padding: 2rem;">
-							${isOwner ? 'Tell people about yourself...' : 'No about information yet.'}
-						</div>
-					`;
+					// Fallback: show template content directly
+					const fallbackContent = getInitialContent();
+					document.querySelector('#editor').innerHTML = fallbackContent;
 				}
 			}
 
 			function getInitialContent() {
 				// In a real app, this would load from a database
-				return `
-					<p>Hi there! I'm ${slug}.</p>
-					<p>This is my personal space on the web where I share my thoughts, projects, and experiences.</p>
-					${isOwner ? '<p>Click "Edit" to customize this about page and tell people more about yourself!</p>' : ''}
-				`;
-			}
-
-			function setupEditControls() {
-				const editToggle = document.getElementById('edit-toggle');
-				const saveBtn = document.getElementById('save-btn');
-				const editText = document.getElementById('edit-text');
-
-				editToggle?.addEventListener('click', function() {
-					isEditMode = !isEditMode;
-
-					if (isEditMode) {
-						editText.textContent = 'Cancel';
-						saveBtn.style.display = 'flex';
-						editor?.setEditable(true);
-					} else {
-						editText.textContent = 'Edit';
-						saveBtn.style.display = 'none';
-						editor?.setEditable(false);
-					}
-				});
-
-				saveBtn?.addEventListener('click', function() {
-					// In a real app, this would save to a database
-					const content = editor?.getHTML();
-					console.log('Saving about content:', content);
-
-					// Show saved state
-					saveBtn.innerHTML = `
-						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<polyline points="20,6 9,17 4,12"></polyline>
-						</svg>
-						Saved!
+				if (isOwner) {
+					return `
+						<h1>About ${slug}</h1>
+						<p>Welcome to my about page! Here are some ideas for what you can include:</p>
+						<h2>Who am I?</h2>
+						<p>Tell people about yourself, your background, and what you're passionate about.</p>
+						<h2>What do I do?</h2>
+						<p>Share your work, projects, or interests. You can use <strong>markdown formatting</strong> like:</p>
+						<ul>
+							<li><strong>Bold text</strong> for emphasis</li>
+							<li><em>Italic text</em> for subtle emphasis</li>
+							<li>Lists like this one</li>
+							<li>Links to your <a href="https://example.com">favorite websites</a></li>
+						</ul>
+						<h2>How to reach me</h2>
+						<p>Add your contact information or social media links here.</p>
+						<blockquote>
+							<p>💡 <em>Tip: You can delete this template and write whatever you want. Use the heading styles, lists, links, and formatting to make it your own!</em></p>
+						</blockquote>
 					`;
-
-					// Reset after a moment
-					setTimeout(() => {
-						saveBtn.innerHTML = `
-							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<polyline points="20,6 9,17 4,12"></polyline>
-							</svg>
-							Save
-						`;
-					}, 2000);
-
-					// Exit edit mode
-					isEditMode = false;
-					editText.textContent = 'Edit';
-					saveBtn.style.display = 'none';
-					editor?.setEditable(false);
-				});
+				} else {
+					return '<p>No about information yet.</p>';
+				}
 			}
+
 		</script>
 	</body>
 </html>

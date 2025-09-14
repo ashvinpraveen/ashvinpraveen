@@ -6,6 +6,10 @@ import { Icon } from 'astro-icon/components';
 export const prerender = false;
 
 const user = await Astro.locals.currentUser();
+const auth = Astro.locals.auth();
+
+// Check if user is actually authenticated
+const isAuthenticated = user && auth && auth.userId;
 const preferredUsername = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
 
 // Detect if we're on a user page
@@ -21,7 +25,7 @@ let isCurrentUserOwner = false;
 if (isUserPage) {
   currentUserSlug = pathParts[0]; // /username/...
 
-  if (user) {
+  if (isAuthenticated) {
     const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
     isCurrentUserOwner = userSlug.toLowerCase() === currentUserSlug?.toLowerCase();
   }
@@ -113,7 +117,7 @@ if (isUserPage) {
           <span>About</span>
         </HeaderLink>
 
-        {user && (
+        {isAuthenticated && (
           <HeaderLink href="/app" class="nav-link admin-link">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
@@ -127,7 +131,7 @@ if (isUserPage) {
   </div>
   
   <div class="user-status">
-    {user ? (
+    {isAuthenticated ? (
       // Logged in user
       <>
         <a href={`/${preferredUsername}`} class="user-link nav-link">
@@ -152,15 +156,29 @@ if (isUserPage) {
         </button>
       </>
     ) : (
-      // Logged out user
-      <button class="signin-btn nav-link" id="signin-btn">
+      // Logged out user - show different content for user pages vs main site
+      isUserPage ? (
+        <div class="create-account-prompt">
+          <p class="prompt-text">Create your own page!</p>
+          <button class="signin-btn nav-link" id="signin-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10,17 15,12 10,7"/>
+              <line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            <span>Sign In</span>
+          </button>
+        </div>
+      ) : (
+        <button class="signin-btn nav-link" id="signin-btn">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
           <polyline points="10,17 15,12 10,7"/>
           <line x1="15" y1="12" x2="3" y2="12"/>
         </svg>
-        <span>Sign In</span>
-      </button>
+          <span>Sign In</span>
+        </button>
+      )
     )}
   </div>
 
@@ -366,6 +384,20 @@ if (isUserPage) {
     background: hsl(120 100% 50% / 0.15);
     border-color: hsl(120 100% 50% / 0.3);
     color: hsl(120 100% 70%);
+  }
+
+  .create-account-prompt {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .prompt-text {
+    font-size: 0.875rem;
+    color: var(--typography-subtle);
+    font-weight: 500;
+    margin: 0;
+    text-align: center;
   }
 
   .nav-footer {
