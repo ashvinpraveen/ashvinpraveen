@@ -57,4 +57,13 @@ export default defineSchema({
     order: v.number(),
     createdAt: v.number(),
   }).index('by_site', ['siteId']).index('by_site_order', ['siteId', 'order']),
+
+  images: defineTable({
+    filename: v.string(),
+    mimeType: v.string(),
+    imageData: v.string(), // Base64 encoded image data
+    userId: v.optional(v.string()), // Clerk user ID
+    uploadedAt: v.number(),
+    size: v.number(), // File size in bytes
+  }).index('by_user', ['userId']).index('by_uploaded_at', ['uploadedAt']),
 });

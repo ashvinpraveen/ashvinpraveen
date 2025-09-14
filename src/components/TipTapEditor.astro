@@ -1,0 +1,845 @@
+---
+export interface Props {
+	id?: string;
+	placeholder?: string;
+	content?: string;
+	editable?: boolean;
+	showBubbleMenu?: boolean;
+	showContextMenu?: boolean;
+	class?: string;
+	onSave?: (content: string) => void;
+}
+
+const {
+	id = 'tiptap-editor',
+	placeholder = 'Start typing...',
+	content = '',
+	editable = false,
+	showBubbleMenu = true,
+	showContextMenu = true,
+	class: className = '',
+	onSave
+} = Astro.props;
+---
+
+<div class={`tiptap-wrapper ${className}`}>
+	<!-- Editor Container -->
+	<div id={id} class="tiptap-editor"></div>
+
+	{showBubbleMenu && (
+		<!-- Bubble Menu for Text Selection -->
+		<div id={`${id}-bubble-menu`} class="bubble-menu">
+			<button class="menu-btn" data-action="bold">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+					<path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+				</svg>
+			</button>
+			<button class="menu-btn" data-action="italic">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<line x1="19" y1="4" x2="10" y2="4"/>
+					<line x1="14" y1="20" x2="5" y2="20"/>
+					<line x1="15" y1="4" x2="9" y2="20"/>
+				</svg>
+			</button>
+			<button class="menu-btn" data-action="link">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+					<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+				</svg>
+			</button>
+		</div>
+	)}
+
+	{showContextMenu && (
+		<!-- Context Menu -->
+		<div id={`${id}-context-menu`} class="context-menu">
+			<!-- Text Formatting -->
+			<div class="menu-section">
+				<button class="menu-btn" data-action="bold">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+						<path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/>
+					</svg>
+					Bold
+				</button>
+				<button class="menu-btn" data-action="italic">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<line x1="19" y1="4" x2="10" y2="4"/>
+						<line x1="14" y1="20" x2="5" y2="20"/>
+						<line x1="15" y1="4" x2="9" y2="20"/>
+					</svg>
+					Italic
+				</button>
+				<button class="menu-btn" data-action="underline">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/>
+						<line x1="4" y1="21" x2="20" y2="21"/>
+					</svg>
+					Underline
+				</button>
+				<button class="menu-btn" data-action="highlight">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="m9 11-6 6v3h3l6-6"/>
+						<path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/>
+					</svg>
+					Highlight
+				</button>
+			</div>
+
+			<!-- Headings -->
+			<div class="menu-section">
+				<button class="menu-btn" data-action="h1">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="m4 20 8-16m0 16L20 4"/>
+						<path d="M9 9h1m4 0h2"/>
+					</svg>
+					Heading 1
+				</button>
+				<button class="menu-btn" data-action="h2">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="m4 20 8-16m0 16L12 4"/>
+						<path d="M9 9h1m2 0h1"/>
+					</svg>
+					Heading 2
+				</button>
+				<button class="menu-btn" data-action="h3">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="m4 20 8-16m0 16L12 4"/>
+						<path d="M9 9h1m2 0h1"/>
+					</svg>
+					Heading 3
+				</button>
+			</div>
+
+			<!-- Lists -->
+			<div class="menu-section">
+				<button class="menu-btn" data-action="bulletList">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<line x1="8" y1="6" x2="21" y2="6"/>
+						<line x1="8" y1="12" x2="21" y2="12"/>
+						<line x1="8" y1="18" x2="21" y2="18"/>
+						<line x1="3" y1="6" x2="3.01" y2="6"/>
+						<line x1="3" y1="12" x2="3.01" y2="12"/>
+						<line x1="3" y1="18" x2="3.01" y2="18"/>
+					</svg>
+					Bullet List
+				</button>
+				<button class="menu-btn" data-action="orderedList">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<line x1="10" y1="6" x2="21" y2="6"/>
+						<line x1="10" y1="12" x2="21" y2="12"/>
+						<line x1="10" y1="18" x2="21" y2="18"/>
+						<path d="M4 6h1v4"/>
+						<path d="M4 10h2"/>
+						<path d="M6 18H4c0-1 2-2 2-3s-1-1.5-1-1.5"/>
+					</svg>
+					Numbered List
+				</button>
+				<button class="menu-btn" data-action="taskList">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M9 11l3 3 8-8"/>
+						<path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.24 0 2.43.25 3.51.7"/>
+					</svg>
+					Task List
+				</button>
+			</div>
+
+			<!-- Media -->
+			<div class="menu-section">
+				<button class="menu-btn" data-action="image">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+						<circle cx="9" cy="9" r="2"/>
+						<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+					</svg>
+					Add Image
+				</button>
+				<button class="menu-btn" data-action="youtube">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
+						<polygon points="9.75,15.02 15.5,11.75 9.75,8.48"/>
+					</svg>
+					Add Video
+				</button>
+				<button class="menu-btn" data-action="spotify">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<circle cx="12" cy="12" r="10"/>
+						<path d="M8 14.5c1.5-1 4-1 5.5 0"/>
+						<path d="M8 11.5c2-1.5 5-1.5 7 0"/>
+						<path d="M8 8.5c2.5-2 6.5-2 9 0"/>
+					</svg>
+					Add Spotify
+				</button>
+			</div>
+
+			<!-- Advanced -->
+			<div class="menu-section">
+				<button class="menu-btn" data-action="table">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M3 3h18v18H3V3z"/>
+						<path d="M12 3v18"/>
+						<path d="M3 9h18"/>
+						<path d="M3 15h18"/>
+					</svg>
+					Add Table
+				</button>
+				<button class="menu-btn" data-action="blockquote">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/>
+						<path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/>
+					</svg>
+					Quote
+				</button>
+				<button class="menu-btn" data-action="link">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+					</svg>
+					Add Link
+				</button>
+			</div>
+		</div>
+	)}
+</div>
+
+<style>
+	.tiptap-wrapper {
+		position: relative;
+		width: 100%;
+	}
+
+	.tiptap-editor {
+		min-height: 200px;
+		padding: 1rem;
+		border-radius: 8px;
+		background: hsl(0 0% 100% / 0.02);
+		border: 1px solid hsl(0 0% 100% / 0.1);
+	}
+
+	/* Bubble Menu Styles */
+	.bubble-menu {
+		display: flex;
+		gap: 0.25rem;
+		background: hsl(0 0% 0% / 0.95);
+		backdrop-filter: blur(20px);
+		border: 1px solid hsl(0 0% 100% / 0.15);
+		border-radius: 8px;
+		padding: 0.5rem;
+		box-shadow: 0 8px 24px hsl(0 0% 0% / 0.4);
+		visibility: hidden;
+		opacity: 0;
+		transition: all 0.2s ease;
+	}
+
+	/* Context Menu Styles */
+	.context-menu {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		background: hsl(0 0% 0% / 0.95);
+		backdrop-filter: blur(20px);
+		border: 1px solid hsl(0 0% 100% / 0.15);
+		border-radius: 8px;
+		padding: 0.25rem;
+		box-shadow: 0 8px 24px hsl(0 0% 0% / 0.4);
+		z-index: 9999 !important;
+		visibility: hidden;
+		opacity: 0;
+		transition: all 0.15s ease;
+		min-width: 180px;
+		max-width: 220px;
+		max-height: 80vh;
+		overflow-y: auto;
+		position: fixed !important;
+		pointer-events: auto !important;
+	}
+
+	.menu-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0;
+		padding: 0.25rem 0;
+	}
+
+	.menu-section:not(:last-child) {
+		border-bottom: 1px solid hsl(0 0% 100% / 0.08);
+		margin-bottom: 0.25rem;
+		padding-bottom: 0.5rem;
+	}
+
+	/* Menu Button Styles */
+	.menu-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		background: transparent;
+		border: none;
+		border-radius: 6px;
+		color: hsl(0 0% 100% / 0.9);
+		cursor: pointer;
+		font-size: 0.875rem;
+		font-weight: 500;
+		white-space: nowrap;
+		transition: all 0.2s ease;
+		text-align: left;
+		width: 100%;
+		min-width: auto;
+	}
+
+	.bubble-menu .menu-btn {
+		padding: 0.5rem;
+		gap: 0;
+		width: auto;
+	}
+
+	.menu-btn:hover {
+		background: hsl(0 0% 100% / 0.08);
+		color: hsl(0 0% 100%);
+	}
+
+	.menu-btn.active {
+		background: hsl(200 100% 50% / 0.2);
+		color: hsl(200 100% 80%);
+		border: 1px solid hsl(200 100% 50% / 0.4);
+	}
+
+	.menu-btn svg {
+		width: 16px;
+		height: 16px;
+		stroke-width: 2;
+		flex-shrink: 0;
+	}
+
+	/* TipTap Content Styles */
+	:global(.tiptap-editor .ProseMirror) {
+		outline: none;
+		color: inherit;
+		font-family: inherit;
+		font-size: inherit;
+		line-height: 1.6;
+	}
+
+	:global(.tiptap-editor .ProseMirror p) {
+		margin-bottom: 1rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror p:last-child) {
+		margin-bottom: 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror h1),
+	:global(.tiptap-editor .ProseMirror h2),
+	:global(.tiptap-editor .ProseMirror h3) {
+		font-weight: 600;
+		line-height: 1.3;
+		margin-bottom: 0.75rem;
+		margin-top: 1.5rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror h1:first-child),
+	:global(.tiptap-editor .ProseMirror h2:first-child),
+	:global(.tiptap-editor .ProseMirror h3:first-child) {
+		margin-top: 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror h1) {
+		font-size: 1.875rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror h2) {
+		font-size: 1.5rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror h3) {
+		font-size: 1.25rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror ul),
+	:global(.tiptap-editor .ProseMirror ol) {
+		padding-left: 1.5rem;
+		margin-bottom: 1rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror li) {
+		margin-bottom: 0.25rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror ul[data-type="taskList"]) {
+		list-style: none;
+		padding-left: 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror li[data-type="taskItem"]) {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	:global(.tiptap-editor .ProseMirror li[data-type="taskItem"] > label) {
+		flex-shrink: 0;
+		margin: 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror a) {
+		color: hsl(200 100% 70%);
+		text-decoration: underline;
+		transition: color 0.2s ease;
+	}
+
+	:global(.tiptap-editor .ProseMirror a:hover) {
+		color: hsl(200 100% 80%);
+	}
+
+	:global(.tiptap-editor .ProseMirror blockquote) {
+		border-left: 3px solid hsl(0 0% 100% / 0.25);
+		padding-left: 1rem;
+		margin: 1.5rem 0;
+		font-style: italic;
+		opacity: 0.9;
+	}
+
+	:global(.tiptap-editor .ProseMirror mark) {
+		background: hsl(60 100% 50% / 0.3);
+		padding: 0.1rem 0.2rem;
+		border-radius: 3px;
+	}
+
+	:global(.tiptap-editor .ProseMirror table) {
+		width: 100%;
+		border-collapse: collapse;
+		margin: 1rem 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror table td),
+	:global(.tiptap-editor .ProseMirror table th) {
+		border: 1px solid hsl(0 0% 100% / 0.4);
+		padding: 0.75rem;
+		text-align: left;
+	}
+
+	:global(.tiptap-editor .ProseMirror table th) {
+		background: hsl(0 0% 100% / 0.05);
+		font-weight: 600;
+	}
+
+	:global(.tiptap-editor .ProseMirror .is-editor-empty:first-child::before) {
+		content: attr(data-placeholder);
+		float: left;
+		color: hsl(0 0% 100% / 0.4);
+		pointer-events: none;
+		height: 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 8px;
+		margin: 1rem 0;
+	}
+
+	:global(.tiptap-editor .ProseMirror .youtube-video) {
+		width: 100%;
+		max-width: 640px;
+		height: 360px;
+		margin: 1rem 0;
+		border-radius: 8px;
+	}
+</style>
+
+<script define:vars={{ id, placeholder, content, editable, showBubbleMenu, showContextMenu }}>
+	// Import TipTap modules
+	import { Editor } from 'https://esm.sh/@tiptap/core@3.4.2'
+	import StarterKit from 'https://esm.sh/@tiptap/starter-kit@3.4.2'
+	import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder@3.4.2'
+	import Link from 'https://esm.sh/@tiptap/extension-link@3.4.2'
+	import Image from 'https://esm.sh/@tiptap/extension-image@3.4.2'
+	import Youtube from 'https://esm.sh/@tiptap/extension-youtube@3.4.2'
+	import BubbleMenu from 'https://esm.sh/@tiptap/extension-bubble-menu@3.4.2'
+	import { TableKit } from 'https://esm.sh/@tiptap/extension-table@3.4.2'
+	import TaskList from 'https://esm.sh/@tiptap/extension-task-list@3.4.2'
+	import TaskItem from 'https://esm.sh/@tiptap/extension-task-item@3.4.2'
+	import TextAlign from 'https://esm.sh/@tiptap/extension-text-align@3.4.2'
+	import Underline from 'https://esm.sh/@tiptap/extension-underline@3.4.2'
+	import Highlight from 'https://esm.sh/@tiptap/extension-highlight@3.4.2'
+
+	// Global editor instance
+	let editor = null;
+
+	// Initialize TipTap Editor
+	function initializeTipTapEditor() {
+		const extensions = [
+			StarterKit.configure({
+				// Exclude extensions we want to configure separately
+				link: false,
+				underline: false,
+			}),
+			Placeholder.configure({
+				placeholder: placeholder,
+			}),
+			Link.configure({
+				openOnClick: false,
+				HTMLAttributes: {
+					class: 'editor-link',
+				},
+			}),
+			Image.configure({
+				inline: false,
+				allowBase64: false,
+				HTMLAttributes: {
+					class: 'editor-image',
+				},
+			}),
+			Youtube.configure({
+				inline: false,
+				width: 640,
+				height: 360,
+				controls: true,
+				nocookie: true,
+				allowFullscreen: true,
+				HTMLAttributes: {
+					class: 'youtube-video',
+				},
+			}),
+			TableKit.configure({
+				resizable: true,
+			}),
+			TaskList,
+			TaskItem.configure({
+				nested: true,
+			}),
+			TextAlign.configure({
+				types: ['heading', 'paragraph'],
+			}),
+			Underline,
+			Highlight,
+		];
+
+		// Add bubble menu if enabled
+		if (showBubbleMenu) {
+			extensions.push(
+				BubbleMenu.configure({
+					element: document.querySelector(`#${id}-bubble-menu`),
+					shouldShow: ({ from, to }) => {
+						return from !== to;
+					},
+				})
+			);
+		}
+
+		editor = new Editor({
+			element: document.querySelector(`#${id}`),
+			extensions: extensions,
+			content: content,
+			editable: editable,
+			editorProps: {
+				attributes: {
+					class: 'prose prose-invert max-w-none',
+				},
+			},
+		});
+
+		// Setup event listeners
+		setupMenuEventListeners();
+
+		if (showContextMenu) {
+			setupContextMenu();
+		}
+
+		// Update menu states when selection changes
+		editor.on('selectionUpdate', updateMenuStates);
+
+		return editor;
+	}
+
+	function setupMenuEventListeners() {
+		// Bubble menu event listeners
+		if (showBubbleMenu) {
+			document.querySelectorAll(`#${id}-bubble-menu .menu-btn`).forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const action = e.currentTarget.dataset.action;
+					handleMenuAction(action);
+				});
+			});
+		}
+
+		// Context menu event listeners
+		if (showContextMenu) {
+			document.querySelectorAll(`#${id}-context-menu .menu-btn`).forEach(btn => {
+				btn.addEventListener('click', (e) => {
+					const action = e.currentTarget.dataset.action;
+					handleMenuAction(action);
+					hideContextMenu();
+				});
+			});
+		}
+	}
+
+	function setupContextMenu() {
+		const contextMenu = document.querySelector(`#${id}-context-menu`);
+		const editorElement = document.querySelector(`#${id}`);
+
+		// Attach to document to catch all right-clicks, then check if inside editor
+		document.addEventListener('contextmenu', (e) => {
+			if (!editor || !editor.isEditable) return; // Only show in edit mode
+
+			// Check if the right-click happened inside the editor
+			const editorRect = editorElement.getBoundingClientRect();
+			const isInsideEditor = (
+				e.clientX >= editorRect.left &&
+				e.clientX <= editorRect.right &&
+				e.clientY >= editorRect.top &&
+				e.clientY <= editorRect.bottom
+			);
+
+			if (isInsideEditor) {
+				e.preventDefault();
+				e.stopPropagation();
+				showContextMenu(e.clientX, e.clientY);
+			}
+		}, true);
+
+		// Hide context menu when clicking elsewhere
+		document.addEventListener('click', (e) => {
+			if (!contextMenu.contains(e.target)) {
+				hideContextMenu();
+			}
+		});
+
+		// Hide context menu on scroll or resize
+		document.addEventListener('scroll', hideContextMenu);
+		window.addEventListener('resize', hideContextMenu);
+	}
+
+	function showContextMenu(x, y) {
+		const contextMenu = document.querySelector(`#${id}-context-menu`);
+		const editorElement = document.querySelector(`#${id} .ProseMirror`);
+
+		if (!contextMenu || !editorElement) return;
+
+		// Move the menu to document body to avoid any container transform issues
+		if (contextMenu.parentElement !== document.body) {
+			document.body.appendChild(contextMenu);
+		}
+
+		// Reset all positioning and transforms
+		contextMenu.style.cssText = '';
+
+		// Position the menu using fixed positioning with the exact coordinates
+		contextMenu.style.position = 'fixed';
+		contextMenu.style.left = x + 'px';
+		contextMenu.style.top = y + 'px';
+		contextMenu.style.zIndex = '9999';
+		contextMenu.style.visibility = 'visible';
+		contextMenu.style.opacity = '1';
+		contextMenu.style.pointerEvents = 'auto';
+		contextMenu.style.display = 'flex';
+		contextMenu.style.transform = 'none';
+		contextMenu.style.transformOrigin = 'top left';
+
+		// Apply the CSS classes to maintain styling
+		contextMenu.className = 'context-menu';
+
+		// Smart positioning to keep menu in viewport
+		requestAnimationFrame(() => {
+			const menuRect = contextMenu.getBoundingClientRect();
+			let adjustedX = x;
+			let adjustedY = y;
+
+			if (x + menuRect.width > window.innerWidth) {
+				adjustedX = x - menuRect.width;
+			}
+
+			if (y + menuRect.height > window.innerHeight) {
+				adjustedY = y - menuRect.height;
+			}
+
+			adjustedX = Math.max(8, adjustedX);
+			adjustedY = Math.max(8, adjustedY);
+
+			// Only reposition if we actually need to adjust
+			if (adjustedX !== x || adjustedY !== y) {
+				contextMenu.style.left = adjustedX + 'px';
+				contextMenu.style.top = adjustedY + 'px';
+			}
+		});
+	}
+
+	function hideContextMenu() {
+		const contextMenu = document.querySelector(`#${id}-context-menu`);
+		if (contextMenu) {
+			contextMenu.style.visibility = 'hidden';
+			contextMenu.style.opacity = '0';
+		}
+	}
+
+	function handleMenuAction(action) {
+		if (!editor) return;
+
+		switch (action) {
+			// Text formatting
+			case 'bold':
+				editor.chain().focus().toggleBold().run();
+				break;
+			case 'italic':
+				editor.chain().focus().toggleItalic().run();
+				break;
+			case 'underline':
+				editor.chain().focus().toggleUnderline().run();
+				break;
+			case 'highlight':
+				editor.chain().focus().toggleHighlight().run();
+				break;
+
+			// Headings
+			case 'h1':
+				editor.chain().focus().toggleHeading({ level: 1 }).run();
+				break;
+			case 'h2':
+				editor.chain().focus().toggleHeading({ level: 2 }).run();
+				break;
+			case 'h3':
+				editor.chain().focus().toggleHeading({ level: 3 }).run();
+				break;
+
+			// Lists
+			case 'bulletList':
+				editor.chain().focus().toggleBulletList().run();
+				break;
+			case 'orderedList':
+				editor.chain().focus().toggleOrderedList().run();
+				break;
+			case 'taskList':
+				editor.chain().focus().toggleTaskList().run();
+				break;
+
+			// Media
+			case 'image':
+				const imageUrl = prompt('Enter image URL:');
+				if (imageUrl) {
+					editor.chain().focus().setImage({ src: imageUrl }).run();
+				}
+				break;
+			case 'youtube':
+				const youtubeUrl = prompt('Enter YouTube URL:');
+				if (youtubeUrl) {
+					editor.chain().focus().setYoutubeVideo({ src: youtubeUrl }).run();
+				}
+				break;
+			case 'spotify':
+				const spotifyUrl = prompt('Enter Spotify URL (track/album/playlist):');
+				if (spotifyUrl) {
+					insertSpotifyEmbed(spotifyUrl);
+				}
+				break;
+
+			// Advanced
+			case 'table':
+				editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+				break;
+			case 'blockquote':
+				editor.chain().focus().toggleBlockquote().run();
+				break;
+			case 'link':
+				const url = prompt('Enter URL:');
+				if (url) {
+					editor.chain().focus().setLink({ href: url }).run();
+				}
+				break;
+		}
+	}
+
+	function updateMenuStates() {
+		if (!editor) return;
+
+		// Update all menu button states
+		document.querySelectorAll(`#${id}-bubble-menu .menu-btn, #${id}-context-menu .menu-btn`).forEach(btn => {
+			const action = btn.dataset.action;
+			btn.classList.remove('active');
+
+			switch (action) {
+				// Text formatting
+				case 'bold':
+					if (editor.isActive('bold')) btn.classList.add('active');
+					break;
+				case 'italic':
+					if (editor.isActive('italic')) btn.classList.add('active');
+					break;
+				case 'underline':
+					if (editor.isActive('underline')) btn.classList.add('active');
+					break;
+				case 'highlight':
+					if (editor.isActive('highlight')) btn.classList.add('active');
+					break;
+
+				// Headings
+				case 'h1':
+					if (editor.isActive('heading', { level: 1 })) btn.classList.add('active');
+					break;
+				case 'h2':
+					if (editor.isActive('heading', { level: 2 })) btn.classList.add('active');
+					break;
+				case 'h3':
+					if (editor.isActive('heading', { level: 3 })) btn.classList.add('active');
+					break;
+
+				// Lists
+				case 'bulletList':
+					if (editor.isActive('bulletList')) btn.classList.add('active');
+					break;
+				case 'orderedList':
+					if (editor.isActive('orderedList')) btn.classList.add('active');
+					break;
+				case 'taskList':
+					if (editor.isActive('taskList')) btn.classList.add('active');
+					break;
+
+				// Advanced
+				case 'blockquote':
+					if (editor.isActive('blockquote')) btn.classList.add('active');
+					break;
+				case 'link':
+					if (editor.isActive('link')) btn.classList.add('active');
+					break;
+			}
+		});
+	}
+
+	function insertSpotifyEmbed(url) {
+		// Convert Spotify URL to embed format
+		let embedUrl = '';
+
+		if (url.includes('track/')) {
+			const trackId = url.split('track/')[1].split('?')[0];
+			embedUrl = `https://open.spotify.com/embed/track/${trackId}`;
+		} else if (url.includes('album/')) {
+			const albumId = url.split('album/')[1].split('?')[0];
+			embedUrl = `https://open.spotify.com/embed/album/${albumId}`;
+		} else if (url.includes('playlist/')) {
+			const playlistId = url.split('playlist/')[1].split('?')[0];
+			embedUrl = `https://open.spotify.com/embed/playlist/${playlistId}`;
+		}
+
+		if (embedUrl) {
+			const iframe = `<iframe src="${embedUrl}" width="100%" height="352" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>`;
+			editor.chain().focus().insertContent(iframe).run();
+		}
+	}
+
+	// Expose editor instance globally for external access
+	window[`${id}Editor`] = {
+		getEditor: () => editor,
+		getContent: () => editor?.getHTML() || '',
+		setContent: (newContent) => editor?.commands.setContent(newContent),
+		setEditable: (isEditable) => editor?.setEditable(isEditable),
+		focus: () => editor?.commands.focus(),
+	};
+
+	// Initialize when DOM is ready
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', initializeTipTapEditor);
+	} else {
+		initializeTipTapEditor();
+	}
+</script>
