@@ -13,6 +13,9 @@ export default defineSchema({
     ownerId: v.id('users'),
     name: v.string(),
     slug: v.string(), // e.g. username or custom slug
+    // Profile information
+    title: v.optional(v.string()), // Display name/title
+    bio: v.optional(v.string()), // Bio/description
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_slug', ['slug']).index('by_owner', ['ownerId']),
@@ -36,4 +39,22 @@ export default defineSchema({
     content: v.string(), // markdown
     updatedAt: v.number(),
   }).index('by_site_key', ['siteId', 'key']).index('by_site', ['siteId']),
+
+  projects: defineTable({
+    siteId: v.id('sites'),
+    title: v.string(),
+    description: v.string(),
+    url: v.optional(v.string()),
+    order: v.number(), // For ordering projects
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index('by_site', ['siteId']).index('by_site_order', ['siteId', 'order']),
+
+  socialLinks: defineTable({
+    siteId: v.id('sites'),
+    platform: v.string(), // 'twitter', 'github', 'linkedin', etc.
+    url: v.string(),
+    order: v.number(),
+    createdAt: v.number(),
+  }).index('by_site', ['siteId']).index('by_site_order', ['siteId', 'order']),
 });

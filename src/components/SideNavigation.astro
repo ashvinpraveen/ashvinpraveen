@@ -2,42 +2,168 @@
 import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
 import { Icon } from 'astro-icon/components';
+
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+const preferredUsername = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
+
+// Detect if we're on a user page
+const currentPath = Astro.url.pathname;
+const pathParts = currentPath.split('/').filter(Boolean);
+const mainSitePages = ['app', 'blog', 'about', 'onboarding', 'sign-in', 'sign-up'];
+const isMainSitePage = currentPath === '/' || mainSitePages.some(page => currentPath.startsWith(`/${page}`));
+const isUserPage = !isMainSitePage && pathParts.length > 0;
+
+let currentUserSlug = null;
+let isCurrentUserOwner = false;
+
+if (isUserPage) {
+  currentUserSlug = pathParts[0]; // /username/...
+
+  if (user) {
+    const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+    isCurrentUserOwner = userSlug.toLowerCase() === currentUserSlug?.toLowerCase();
+  }
+}
 ---
 
 <nav class="side-nav">
   <div class="nav-header">
-    <h2><a href="/">{SITE_TITLE}</a></h2>
+    <h2>
+      <a href={isUserPage ? `/${currentUserSlug}` : "/"}>
+        {isUserPage ? `${currentUserSlug?.charAt(0).toUpperCase()}${currentUserSlug?.slice(1)}` : SITE_TITLE}
+      </a>
+    </h2>
+    {isUserPage && (
+      <p class="nav-subtitle">
+        <a href="/" class="back-to-main">← Back to {SITE_TITLE}</a>
+      </p>
+    )}
   </div>
-  
+
   <div class="nav-links">
-    <HeaderLink href="/" class="nav-link">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-        <polyline points="9,22 9,12 15,12 15,22"/>
-      </svg>
-      <span>Home</span>
-    </HeaderLink>
-    
-    <HeaderLink href="/blog" class="nav-link">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14,2 14,8 20,8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-        <polyline points="10,9 9,9 8,9"/>
-      </svg>
-      <span>Blog</span>
-    </HeaderLink>
-    
-    <HeaderLink href="/about" class="nav-link">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <circle cx="12" cy="12" r="10"/>
-        <path d="m9 12 2 2 4-4"/>
-      </svg>
-      <span>About</span>
-    </HeaderLink>
+    {isUserPage ? (
+      // User page navigation
+      <>
+        <HeaderLink href={`/${currentUserSlug}`} class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+          <span>Profile</span>
+        </HeaderLink>
+
+        <HeaderLink href={`/${currentUserSlug}/blog`} class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+          <span>Blog</span>
+        </HeaderLink>
+
+        <HeaderLink href={`/${currentUserSlug}/about`} class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span>About</span>
+        </HeaderLink>
+
+        {isCurrentUserOwner && (
+          <HeaderLink href="/app" class="nav-link admin-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Dashboard</span>
+          </HeaderLink>
+        )}
+      </>
+    ) : (
+      // Main site navigation
+      <>
+        <HeaderLink href="/" class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9,22 9,12 15,12 15,22"/>
+          </svg>
+          <span>Home</span>
+        </HeaderLink>
+
+        <HeaderLink href="/blog" class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14,2 14,8 20,8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+            <polyline points="10,9 9,9 8,9"/>
+          </svg>
+          <span>Blog</span>
+        </HeaderLink>
+
+        <HeaderLink href="/about" class="nav-link">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <span>About</span>
+        </HeaderLink>
+
+        {user && (
+          <HeaderLink href="/app" class="nav-link admin-link">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Dashboard</span>
+          </HeaderLink>
+        )}
+      </>
+    )}
   </div>
   
+  <div class="user-status">
+    {user ? (
+      // Logged in user
+      <>
+        <a href={`/${preferredUsername}`} class="user-link nav-link">
+          <div class="user-avatar">
+            <img
+              src={user.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.firstName || preferredUsername)}`}
+              alt={`${user.firstName || preferredUsername}'s avatar`}
+              width="20"
+              height="20"
+            />
+          </div>
+          <span>Open your page</span>
+        </a>
+
+        <button class="logout-btn nav-link" id="logout-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16,17 21,12 16,7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Sign Out</span>
+        </button>
+      </>
+    ) : (
+      // Logged out user
+      <button class="signin-btn nav-link" id="signin-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10,17 15,12 10,7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        <span>Sign In</span>
+      </button>
+    )}
+  </div>
+
   <div class="nav-footer">
     <div class="social-links">
       <a href="https://github.com/ashvinpraveen" aria-label="GitHub" class="social-link">
@@ -90,6 +216,22 @@ import { Icon } from 'astro-icon/components';
     color: inherit;
   }
 
+  .nav-subtitle {
+    margin: 0.5rem 0 0 0;
+    font-size: 0.8rem;
+  }
+
+  .back-to-main {
+    color: var(--typography-subtle);
+    text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease;
+  }
+
+  .back-to-main:hover {
+    color: var(--typography-muted);
+  }
+
   .nav-links {
     flex: 1;
     display: flex;
@@ -131,6 +273,99 @@ import { Icon } from 'astro-icon/components';
   .nav-links :global(.nav-link:hover svg),
   .nav-links :global(.nav-link.active svg) {
     opacity: 1;
+  }
+
+  .user-status {
+    padding: 0 16px 16px 16px;
+    border-bottom: 1px solid var(--color-border-subtle);
+    margin-bottom: 16px;
+  }
+
+  .user-status .user-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: var(--typography-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: hsl(235 100% 60% / 0.1);
+    border: 1px solid hsl(235 100% 60% / 0.2);
+  }
+
+  .user-status .user-link:hover {
+    background: hsl(235 100% 60% / 0.15);
+    border-color: hsl(235 100% 60% / 0.3);
+    color: var(--typography-link);
+  }
+
+  .user-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .user-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .logout-btn {
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    color: var(--typography-muted);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: hsl(0 100% 50% / 0.1);
+    border: 1px solid hsl(0 100% 50% / 0.2);
+    cursor: pointer;
+  }
+
+  .logout-btn:hover {
+    background: hsl(0 100% 50% / 0.15);
+    border-color: hsl(0 100% 50% / 0.3);
+    color: hsl(0 100% 70%);
+  }
+
+  .signin-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    color: var(--typography-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    border: none;
+    background: hsl(120 100% 50% / 0.1);
+    border: 1px solid hsl(120 100% 50% / 0.2);
+    cursor: pointer;
+  }
+
+  .signin-btn:hover {
+    background: hsl(120 100% 50% / 0.15);
+    border-color: hsl(120 100% 50% / 0.3);
+    color: hsl(120 100% 70%);
   }
 
   .nav-footer {
@@ -177,6 +412,140 @@ import { Icon } from 'astro-icon/components';
     }
   }
 </style>
+
+<script is:inline>
+  // Handle logout functionality
+  function handleLogout() {
+    const logoutBtn = document.getElementById('logout-btn');
+    if (!logoutBtn) return;
+
+    logoutBtn.addEventListener('click', async () => {
+      try {
+        // Show loading state
+        logoutBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16,17 21,12 16,7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Signing out...</span>
+        `;
+        logoutBtn.disabled = true;
+
+        // Wait for Clerk to be ready
+        if (window.Clerk) {
+          await window.Clerk.load();
+          await window.Clerk.signOut();
+          // Redirect to home after sign out
+          window.location.href = '/';
+        } else {
+          // Fallback to redirect to sign-out endpoint
+          window.location.href = '/sign-out';
+        }
+      } catch (error) {
+        console.error('Logout error:', error);
+        // Restore button state
+        logoutBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16,17 21,12 16,7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+          <span>Sign Out</span>
+        `;
+        logoutBtn.disabled = false;
+
+        // Fallback redirect
+        window.location.href = '/sign-out';
+      }
+    });
+  }
+
+  // Handle sign-in functionality
+  function handleSignIn() {
+    const signinBtn = document.getElementById('signin-btn');
+    if (!signinBtn) return;
+
+    signinBtn.addEventListener('click', async () => {
+      try {
+        // Show loading state
+        signinBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10,17 15,12 10,7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span>Opening...</span>
+        `;
+        signinBtn.disabled = true;
+
+        // Wait for Clerk to be ready and open sign-in modal
+        if (window.Clerk) {
+          await window.Clerk.load();
+
+          window.Clerk.openSignIn({
+            afterSignInUrl: '/app',  // Redirect to dashboard which will then redirect to user page
+            afterSignUpUrl: '/onboarding',  // New users go through onboarding first
+          });
+
+          // Reset button after a short delay
+          setTimeout(() => {
+            signinBtn.innerHTML = `
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10,17 15,12 10,7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              <span>Sign In</span>
+            `;
+            signinBtn.disabled = false;
+          }, 1500);
+        } else {
+          // Fallback to redirect to sign-in page
+          window.location.href = '/sign-in';
+        }
+      } catch (error) {
+        console.error('Sign-in error:', error);
+        // Restore button state
+        signinBtn.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10,17 15,12 10,7"/>
+            <line x1="15" y1="12" x2="3" y2="12"/>
+          </svg>
+          <span>Sign In</span>
+        `;
+        signinBtn.disabled = false;
+
+        // Fallback redirect
+        window.location.href = '/sign-in';
+      }
+    });
+  }
+
+  // Wait for Clerk to load, then initialize both logout and signin
+  async function initializeAuth() {
+    if (window.Clerk) {
+      try {
+        await window.Clerk.load();
+      } catch (error) {
+        console.log('Clerk not ready yet, using fallback');
+      }
+    }
+    handleLogout();
+    handleSignIn();
+  }
+
+  // Initialize when DOM is ready
+  document.addEventListener('DOMContentLoaded', initializeAuth);
+
+  // Also try to initialize immediately in case DOMContentLoaded already fired
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeAuth);
+  } else {
+    initializeAuth();
+  }
+</script>
 
 <script is:inline>
   // Handle mobile navigation toggle if needed

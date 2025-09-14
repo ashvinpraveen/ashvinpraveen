@@ -1,0 +1,6 @@
+---
+export const prerender = false;
+
+// Clear any server-side auth state by redirecting to Clerk's sign out
+return Astro.redirect("/sign-in");
+---

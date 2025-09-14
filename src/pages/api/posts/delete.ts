@@ -10,7 +10,9 @@ export const POST: APIRoute = async (ctx) => {
   const form = await ctx.request.formData();
   const slug = String(form.get('slug') || '');
   if (!slug) return new Response('Bad request', { status: 400 });
+  const token = await auth.getToken();
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  client.setAuth(token);
   // Minimal delete mutation; implement in Convex
   try {
     await client.mutation(api.posts.deleteBySlug, { slug });

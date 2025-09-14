@@ -12,7 +12,9 @@ export const POST: APIRoute = async (ctx) => {
   if (!slug) return new Response('Bad request', { status: 400 });
   const published = String(form.get('published') || '') === 'true' ? true : undefined;
   const toggleTo = published === undefined ? undefined : published;
+  const token = await auth.getToken();
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  client.setAuth(token);
   try {
     // Look up default site slug via sites.listSitesForClerk
     const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: auth.userId });

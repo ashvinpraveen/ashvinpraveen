@@ -1,0 +1,650 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+if (!user) {
+  return Astro.redirect("/sign-in");
+}
+
+// Get the preferred username from query params or localStorage
+const { username } = Astro.url.searchParams;
+const preferredUsername = username || user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || "";
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <BaseHead title="Welcome! Let's set up your profile" description="Complete your profile setup to get started" />
+  </head>
+  <body>
+    <div class="gradient-background"></div>
+
+    <main class="onboarding-container">
+      <div class="glass-card onboarding-card">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="onboarding-header">
+          <h1>Welcome to your corner of the internet! 🎉</h1>
+          <p class="subtitle">Let's set up your profile so people can find and connect with you</p>
+        </div>
+
+        <form id="onboarding-form" class="onboarding-form">
+          <!-- Step 1: Basic Information -->
+          <div class="step active" id="step-1">
+            <h2>Tell us about yourself</h2>
+
+            <div class="form-group">
+              <label for="firstName">First Name</label>
+              <input
+                type="text"
+                id="firstName"
+                name="firstName"
+                value={user.firstName || ""}
+                placeholder="Your first name"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="lastName">Last Name</label>
+              <input
+                type="text"
+                id="lastName"
+                name="lastName"
+                value={user.lastName || ""}
+                placeholder="Your last name"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="username">Username</label>
+              <div class="username-preview">
+                <span class="url-prefix">yoursite.com/</span>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={preferredUsername}
+                  placeholder="your-username"
+                  required
+                />
+              </div>
+              <p class="help-text">This will be your unique URL</p>
+            </div>
+
+            <div class="form-group">
+              <label for="bio">Bio (Optional)</label>
+              <textarea
+                id="bio"
+                name="bio"
+                placeholder="Tell people what you do, what you're passionate about..."
+                rows="3"
+              ></textarea>
+            </div>
+
+            <button type="button" class="btn btn-primary next-btn" onclick="nextStep()">
+              Continue →
+            </button>
+          </div>
+
+          <!-- Step 2: Social Links -->
+          <div class="step" id="step-2">
+            <h2>Connect your social profiles</h2>
+            <p class="step-description">Add your social media links so people can find you everywhere</p>
+
+            <div class="social-links-grid">
+              <div class="form-group">
+                <label for="twitter">
+                  <span class="social-icon">𝕏</span>
+                  Twitter/X
+                </label>
+                <input
+                  type="url"
+                  id="twitter"
+                  name="twitter"
+                  placeholder="https://x.com/yourusername"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="linkedin">
+                  <span class="social-icon">💼</span>
+                  LinkedIn
+                </label>
+                <input
+                  type="url"
+                  id="linkedin"
+                  name="linkedin"
+                  placeholder="https://linkedin.com/in/yourusername"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="github">
+                  <span class="social-icon">💻</span>
+                  GitHub
+                </label>
+                <input
+                  type="url"
+                  id="github"
+                  name="github"
+                  placeholder="https://github.com/yourusername"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="instagram">
+                  <span class="social-icon">📸</span>
+                  Instagram
+                </label>
+                <input
+                  type="url"
+                  id="instagram"
+                  name="instagram"
+                  placeholder="https://instagram.com/yourusername"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="website">
+                  <span class="social-icon">🌐</span>
+                  Personal Website
+                </label>
+                <input
+                  type="url"
+                  id="website"
+                  name="website"
+                  placeholder="https://yourwebsite.com"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="calendly">
+                  <span class="social-icon">📅</span>
+                  Calendly
+                </label>
+                <input
+                  type="url"
+                  id="calendly"
+                  name="calendly"
+                  placeholder="https://calendly.com/yourusername"
+                />
+              </div>
+            </div>
+
+            <div class="step-buttons">
+              <button type="button" class="btn btn-secondary" onclick="prevStep()">
+                ← Back
+              </button>
+              <button type="button" class="btn btn-primary next-btn" onclick="nextStep()">
+                Continue →
+              </button>
+            </div>
+          </div>
+
+          <!-- Step 3: Final Setup -->
+          <div class="step" id="step-3">
+            <h2>You're almost ready! 🚀</h2>
+            <p class="step-description">Review your information and create your profile</p>
+
+            <div class="preview-card">
+              <h3>Preview</h3>
+              <div class="profile-preview">
+                <div class="preview-name" id="preview-name">Name</div>
+                <div class="preview-username" id="preview-username">@username</div>
+                <div class="preview-bio" id="preview-bio">Bio will appear here</div>
+                <div class="preview-links" id="preview-links"></div>
+              </div>
+            </div>
+
+            <div class="step-buttons">
+              <button type="button" class="btn btn-secondary" onclick="prevStep()">
+                ← Back
+              </button>
+              <button type="submit" class="btn btn-primary create-btn" id="create-btn">
+                Create My Profile ✨
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <script>
+      let currentStep = 1;
+      const totalSteps = 3;
+
+      // Make functions global so they can be called from onclick handlers
+      window.updateProgress = function() {
+        const progress = (currentStep / totalSteps) * 100;
+        document.getElementById('progress-fill').style.width = progress + '%';
+      }
+
+      window.showStep = function(step) {
+        // Hide all steps
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+
+        // Show current step
+        document.getElementById(`step-${step}`).classList.add('active');
+
+        // Update progress
+        updateProgress();
+
+        // Update preview on final step
+        if (step === 3) {
+          updatePreview();
+        }
+      }
+
+      window.nextStep = function() {
+        if (currentStep < totalSteps) {
+          // Validate current step
+          if (validateCurrentStep()) {
+            currentStep++;
+            showStep(currentStep);
+          }
+        }
+      }
+
+      window.prevStep = function() {
+        if (currentStep > 1) {
+          currentStep--;
+          showStep(currentStep);
+        }
+      }
+
+      window.validateCurrentStep = function() {
+        if (currentStep === 1) {
+          const firstName = document.getElementById('firstName').value.trim();
+          const username = document.getElementById('username').value.trim();
+
+          if (!firstName) {
+            alert('Please enter your first name');
+            document.getElementById('firstName').focus();
+            return false;
+          }
+
+          if (!username) {
+            alert('Please enter a username');
+            document.getElementById('username').focus();
+            return false;
+          }
+        }
+        return true;
+      }
+
+      window.updatePreview = function() {
+        const firstName = document.getElementById('firstName').value.trim();
+        const lastName = document.getElementById('lastName').value.trim();
+        const username = document.getElementById('username').value.trim();
+        const bio = document.getElementById('bio').value.trim();
+
+        document.getElementById('preview-name').textContent = firstName + (lastName ? ' ' + lastName : '');
+        document.getElementById('preview-username').textContent = '@' + username;
+        document.getElementById('preview-bio').textContent = bio || 'No bio added yet';
+
+        // Update social links preview
+        const socialInputs = ['twitter', 'linkedin', 'github', 'instagram', 'website', 'calendly'];
+        const previewLinks = document.getElementById('preview-links');
+        previewLinks.innerHTML = '';
+
+        socialInputs.forEach(social => {
+          const value = document.getElementById(social).value.trim();
+          if (value) {
+            const link = document.createElement('span');
+            link.className = 'preview-link';
+            link.textContent = social.charAt(0).toUpperCase() + social.slice(1);
+            previewLinks.appendChild(link);
+          }
+        });
+      }
+
+      // Handle form submission
+      document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const createBtn = document.getElementById('create-btn');
+        createBtn.textContent = 'Creating your profile...';
+        createBtn.disabled = true;
+
+        // Collect form data
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+          const response = await fetch('/api/onboarding/complete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+          });
+
+          if (response.ok) {
+            // Success! Redirect to dashboard
+            window.location.href = '/app';
+          } else {
+            throw new Error('Failed to create profile');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('There was an error creating your profile. Please try again.');
+          createBtn.textContent = 'Create My Profile ✨';
+          createBtn.disabled = false;
+        }
+      });
+
+      // Clean username input
+      document.getElementById('username').addEventListener('input', (e) => {
+        const value = e.target.value;
+        const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+        if (value !== cleaned) {
+          e.target.value = cleaned;
+        }
+      });
+
+      // Initialize
+      updateProgress();
+    </script>
+  </body>
+</html>
+
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  .gradient-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/Wallpapers 4.avif');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    z-index: -2;
+  }
+
+  .gradient-background::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: hsl(0 0% 0% / 0.3);
+    z-index: 1;
+  }
+
+  .onboarding-container {
+    position: relative;
+    z-index: 1;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .onboarding-card {
+    width: 100%;
+    max-width: 600px;
+    background: hsl(0 0% 0% / 0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+    border-radius: 24px;
+    box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+    padding: 3rem;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 4px;
+    background: hsl(0 0% 100% / 0.1);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: hsl(235 100% 60%);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+    width: 33.33%;
+  }
+
+  .onboarding-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .onboarding-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: hsl(0 0% 100% / 0.97);
+  }
+
+  .subtitle {
+    color: hsl(0 0% 100% / 0.8);
+    font-size: 1.1rem;
+    margin: 0;
+  }
+
+  .step {
+    display: none;
+  }
+
+  .step.active {
+    display: block;
+  }
+
+  .step h2 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: hsl(0 0% 100% / 0.95);
+  }
+
+  .step-description {
+    color: hsl(0 0% 100% / 0.7);
+    margin-bottom: 2rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: hsl(0 0% 100% / 0.9);
+    font-weight: 500;
+  }
+
+  .social-icon {
+    margin-right: 0.5rem;
+  }
+
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    background: hsl(0 0% 100% / 0.1);
+    border: 2px solid hsl(0 0% 100% / 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    color: hsl(0 0% 100% / 0.95);
+    font-size: 1rem;
+    transition: all 0.3s ease;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: hsl(235 100% 60%);
+    box-shadow: 0 0 0 3px hsl(235 100% 60% / 0.1);
+  }
+
+  .username-preview {
+    display: flex;
+    align-items: center;
+    background: hsl(0 0% 100% / 0.1);
+    border: 2px solid hsl(0 0% 100% / 0.2);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .url-prefix {
+    padding: 1rem;
+    background: hsl(0 0% 100% / 0.1);
+    color: hsl(0 0% 100% / 0.7);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  .username-preview input {
+    border: none;
+    background: transparent;
+    flex: 1;
+  }
+
+  .help-text {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: hsl(0 0% 100% / 0.6);
+  }
+
+  .social-links-grid {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .btn {
+    display: inline-block;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: hsl(235 100% 60%);
+    color: white;
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: hsl(235 100% 65%);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-secondary {
+    background: hsl(0 0% 100% / 0.1);
+    color: hsl(0 0% 100% / 0.9);
+    border: 1px solid hsl(0 0% 100% / 0.2);
+  }
+
+  .btn-secondary:hover {
+    background: hsl(0 0% 100% / 0.15);
+  }
+
+  .step-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .step-buttons .btn {
+    flex: 1;
+  }
+
+  .preview-card {
+    background: hsl(0 0% 100% / 0.05);
+    border: 1px solid hsl(0 0% 100% / 0.1);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .preview-card h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: hsl(0 0% 100% / 0.95);
+  }
+
+  .preview-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: hsl(0 0% 100% / 0.95);
+    margin-bottom: 0.5rem;
+  }
+
+  .preview-username {
+    color: hsl(235 100% 70%);
+    margin-bottom: 1rem;
+  }
+
+  .preview-bio {
+    color: hsl(0 0% 100% / 0.8);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .preview-links {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .preview-link {
+    background: hsl(235 100% 60% / 0.2);
+    color: hsl(235 100% 80%);
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.875rem;
+  }
+
+  @media (max-width: 768px) {
+    .onboarding-card {
+      padding: 2rem;
+      margin: 1rem;
+    }
+
+    .onboarding-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .step-buttons {
+      flex-direction: column;
+    }
+
+    .username-preview {
+      flex-direction: column;
+    }
+
+    .url-prefix {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

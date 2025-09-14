@@ -6,7 +6,26 @@ type Props = HTMLAttributes<'a'>;
 const { href, class: className, ...props } = Astro.props;
 const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
 const subpath = pathname.match(/[^\/]+/g);
-const isActive = href === pathname || href === '/' + (subpath?.[0] || '');
+
+// Enhanced active state logic to handle user sub-pages
+let isActive = false;
+
+if (href === pathname) {
+  // Exact match
+  isActive = true;
+} else if (href === '/' + (subpath?.[0] || '')) {
+  // User root page match (e.g., /ashvin matches /ashvin/blog)
+  isActive = pathname === href;
+} else if (href?.includes('/blog') && pathname.includes('/blog')) {
+  // Blog page matches
+  isActive = true;
+} else if (href?.includes('/about') && pathname.includes('/about')) {
+  // About page matches
+  isActive = true;
+} else if (href === '/' && pathname === '/') {
+  // Home page exact match
+  isActive = true;
+}
 ---
 
 <a href={href} class:list={[className, { active: isActive }]} {...props}>

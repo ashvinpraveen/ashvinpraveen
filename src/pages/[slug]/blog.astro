@@ -1,0 +1,390 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import CardLayout from '../../components/CardLayout.astro';
+export const prerender = false;
+
+const { slug } = Astro.params;
+const user = await Astro.locals.currentUser();
+
+// For now, we'll check if the slug matches the current user
+// In the future, this could query a database for public profiles
+let isOwner = false;
+if (user) {
+  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+  isOwner = userSlug.toLowerCase() === slug?.toLowerCase();
+}
+
+// For demo purposes, we'll show the page if it's the owner or if it's a known slug
+const pageTitle = `${slug}'s Blog`;
+const pageDescription = `Blog posts by ${slug}`;
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<BaseHead title={pageTitle} description={pageDescription} />
+		<script src="https://unpkg.com/@tiptap/core@2.1.16/dist/index.umd.min.js"></script>
+		<script src="https://unpkg.com/@tiptap/pm@2.1.16/dist/index.umd.min.js"></script>
+		<script src="https://unpkg.com/@tiptap/starter-kit@2.1.16/dist/index.umd.min.js"></script>
+		<script src="https://unpkg.com/@tiptap/extension-placeholder@2.1.16/dist/index.umd.min.js"></script>
+		<script src="https://unpkg.com/@tiptap/extension-link@2.1.16/dist/index.umd.min.js"></script>
+	</head>
+	<body>
+		<CardLayout>
+			<main>
+				<div class="page-header">
+					<h1 class="page-title" contenteditable={isOwner ? "true" : "false"} id="page-title">
+						{slug}'s Blog
+					</h1>
+					{isOwner && (
+						<div class="edit-controls">
+							<button class="new-post-btn" id="new-post-btn">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="10"/>
+									<line x1="12" y1="8" x2="12" y2="16"/>
+									<line x1="8" y1="12" x2="16" y2="12"/>
+								</svg>
+								New Post
+							</button>
+							<button class="edit-toggle" id="edit-toggle">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+									<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+								</svg>
+								<span id="edit-text">Edit Page</span>
+							</button>
+							<button class="save-btn" id="save-btn" style="display: none;">
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<polyline points="20,6 9,17 4,12"></polyline>
+								</svg>
+								Save
+							</button>
+						</div>
+					)}
+				</div>
+
+				<div class="editor-container">
+					<div id="editor" class="tiptap-editor"></div>
+				</div>
+			</main>
+		</CardLayout>
+
+		<style>
+			main {
+				max-width: none;
+				padding: 2rem;
+			}
+
+			.page-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 2rem;
+				padding-bottom: 1rem;
+				border-bottom: 1px solid hsl(0 0% 100% / 0.1);
+			}
+
+			.page-title {
+				margin: 0;
+				font-size: 2rem;
+				font-weight: 700;
+				color: hsl(0 0% 100% / 0.97);
+				outline: none;
+				border-radius: 4px;
+				padding: 0.25rem 0.5rem;
+				transition: background 0.2s ease;
+			}
+
+			.page-title[contenteditable="true"]:hover {
+				background: hsl(0 0% 100% / 0.05);
+			}
+
+			.edit-controls {
+				display: flex;
+				gap: 0.5rem;
+			}
+
+			.new-post-btn,
+			.edit-toggle,
+			.save-btn {
+				display: flex;
+				align-items: center;
+				gap: 0.5rem;
+				padding: 0.5rem 1rem;
+				background: hsl(0 0% 100% / 0.1);
+				border: 1px solid hsl(0 0% 100% / 0.2);
+				border-radius: 8px;
+				color: hsl(0 0% 100% / 0.9);
+				cursor: pointer;
+				font-size: 0.875rem;
+				transition: all 0.2s ease;
+			}
+
+			.new-post-btn:hover,
+			.edit-toggle:hover,
+			.save-btn:hover {
+				background: hsl(0 0% 100% / 0.15);
+				border-color: hsl(0 0% 100% / 0.3);
+			}
+
+			.new-post-btn {
+				background: hsl(235 100% 60% / 0.2);
+				border-color: hsl(235 100% 60% / 0.4);
+				color: hsl(235 100% 80%);
+			}
+
+			.new-post-btn:hover {
+				background: hsl(235 100% 60% / 0.3);
+				border-color: hsl(235 100% 60% / 0.5);
+			}
+
+			.save-btn {
+				background: hsl(120 100% 40% / 0.2);
+				border-color: hsl(120 100% 40% / 0.4);
+				color: hsl(120 100% 80%);
+			}
+
+			.save-btn:hover {
+				background: hsl(120 100% 40% / 0.3);
+				border-color: hsl(120 100% 40% / 0.5);
+			}
+
+			.editor-container {
+				max-width: 65ch;
+				margin: 0 auto;
+			}
+
+			.tiptap-editor {
+				min-height: 500px;
+				outline: none;
+				color: hsl(0 0% 100% / 0.92);
+				line-height: 1.6;
+			}
+
+			.tiptap-editor p {
+				margin-bottom: 1rem;
+			}
+
+			.tiptap-editor h1,
+			.tiptap-editor h2,
+			.tiptap-editor h3 {
+				color: hsl(0 0% 100% / 0.97);
+				margin: 1.5rem 0 1rem 0;
+				font-weight: 600;
+			}
+
+			.tiptap-editor h1 {
+				font-size: 1.875rem;
+			}
+
+			.tiptap-editor h2 {
+				font-size: 1.5rem;
+			}
+
+			.tiptap-editor h3 {
+				font-size: 1.25rem;
+			}
+
+			.tiptap-editor ul,
+			.tiptap-editor ol {
+				padding-left: 1.5rem;
+				margin-bottom: 1rem;
+			}
+
+			.tiptap-editor li {
+				margin-bottom: 0.25rem;
+			}
+
+			.tiptap-editor blockquote {
+				border-left: 3px solid hsl(0 0% 100% / 0.3);
+				padding-left: 1rem;
+				margin: 1rem 0;
+				color: hsl(0 0% 100% / 0.8);
+				font-style: italic;
+			}
+
+			.tiptap-editor code {
+				background: hsl(0 0% 100% / 0.1);
+				padding: 0.125rem 0.25rem;
+				border-radius: 4px;
+				font-family: 'JetBrains Mono', monospace;
+				font-size: 0.875rem;
+			}
+
+			.tiptap-editor pre {
+				background: hsl(0 0% 100% / 0.05);
+				padding: 1rem;
+				border-radius: 8px;
+				overflow-x: auto;
+				margin: 1rem 0;
+			}
+
+			.tiptap-editor pre code {
+				background: none;
+				padding: 0;
+			}
+
+			/* Placeholder styles */
+			.tiptap-editor p.is-editor-empty:first-child::before {
+				color: hsl(0 0% 100% / 0.4);
+				content: attr(data-placeholder);
+				float: left;
+				height: 0;
+				pointer-events: none;
+			}
+		</style>
+
+		<script define:vars={{ isOwner, slug }}>
+			let editor = null;
+			let isEditMode = false;
+
+			// Initialize editor when page loads
+			document.addEventListener('DOMContentLoaded', function() {
+				if (typeof window.TiptapCore !== 'undefined') {
+					initializeEditor();
+				} else {
+					// Wait a bit more for scripts to load
+					setTimeout(initializeEditor, 500);
+				}
+			});
+
+			function initializeEditor() {
+				try {
+					editor = new window.TiptapCore.Editor({
+						element: document.querySelector('#editor'),
+						extensions: [
+							window.TiptapStarterKit.default,
+							window.TiptapExtensionPlaceholder.default.configure({
+								placeholder: isOwner ? 'Start writing your blog posts...' : 'No content yet.',
+							}),
+							window.TiptapExtensionLink.default.configure({
+								openOnClick: false,
+							}),
+						],
+						content: getInitialContent(),
+						editable: isOwner && isEditMode,
+						editorProps: {
+							attributes: {
+								class: 'tiptap-editor',
+							},
+						},
+					});
+
+					// Set up edit controls if user is owner
+					if (isOwner) {
+						setupEditControls();
+					}
+				} catch (error) {
+					console.error('Failed to initialize editor:', error);
+					// Fallback: show a simple textarea
+					document.querySelector('#editor').innerHTML = `
+						<div style="color: hsl(0 0% 100% / 0.6); text-align: center; padding: 2rem;">
+							${isOwner ? 'Start writing your blog posts...' : 'No content yet.'}
+						</div>
+					`;
+				}
+			}
+
+			function getInitialContent() {
+				// In a real app, this would load from a database
+				return `
+					<h2>Welcome to ${slug}'s Blog</h2>
+					<p>This is where ${slug} shares thoughts, ideas, and stories.</p>
+					${isOwner ? '<p>Click "Edit" to start writing your first post!</p>' : ''}
+				`;
+			}
+
+			function setupEditControls() {
+				const newPostBtn = document.getElementById('new-post-btn');
+				const editToggle = document.getElementById('edit-toggle');
+				const saveBtn = document.getElementById('save-btn');
+				const editText = document.getElementById('edit-text');
+
+				// Handle new post button
+				newPostBtn?.addEventListener('click', function() {
+					// For now, we'll simulate creating a new post by clearing the editor and entering edit mode
+					const confirmCreate = confirm('Create a new blog post? (This will replace the current content in the editor)');
+
+					if (confirmCreate) {
+						// Clear editor and set new post content
+						editor?.commands.clearContent();
+						editor?.commands.setContent(`
+							<h1>Your New Blog Post</h1>
+							<p>Start writing your amazing blog post here...</p>
+						`);
+
+						// Enter edit mode
+						isEditMode = true;
+						editText.textContent = 'Cancel';
+						saveBtn.style.display = 'flex';
+						editor?.setEditable(true);
+
+						// Show feedback
+						newPostBtn.innerHTML = `
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<polyline points="20,6 9,17 4,12"></polyline>
+							</svg>
+							Post Created!
+						`;
+
+						// Reset button after a moment
+						setTimeout(() => {
+							newPostBtn.innerHTML = `
+								<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<circle cx="12" cy="12" r="10"/>
+									<line x1="12" y1="8" x2="12" y2="16"/>
+									<line x1="8" y1="12" x2="16" y2="12"/>
+								</svg>
+								New Post
+							`;
+						}, 2000);
+					}
+				});
+
+				editToggle?.addEventListener('click', function() {
+					isEditMode = !isEditMode;
+
+					if (isEditMode) {
+						editText.textContent = 'Cancel';
+						saveBtn.style.display = 'flex';
+						editor?.setEditable(true);
+					} else {
+						editText.textContent = 'Edit';
+						saveBtn.style.display = 'none';
+						editor?.setEditable(false);
+					}
+				});
+
+				saveBtn?.addEventListener('click', function() {
+					// In a real app, this would save to a database
+					const content = editor?.getHTML();
+					console.log('Saving content:', content);
+
+					// Show saved state
+					saveBtn.innerHTML = `
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<polyline points="20,6 9,17 4,12"></polyline>
+						</svg>
+						Saved!
+					`;
+
+					// Reset after a moment
+					setTimeout(() => {
+						saveBtn.innerHTML = `
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<polyline points="20,6 9,17 4,12"></polyline>
+							</svg>
+							Save
+						`;
+					}, 2000);
+
+					// Exit edit mode
+					isEditMode = false;
+					editText.textContent = 'Edit';
+					saveBtn.style.display = 'none';
+					editor?.setEditable(false);
+				});
+			}
+		</script>
+	</body>
+</html>

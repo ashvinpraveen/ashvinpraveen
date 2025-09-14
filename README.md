@@ -1,44 +1,44 @@
-# Astro Starter Kit: Blog
+# Ashvin Praveen's Personal Website
 
-```sh
-npm create astro@latest -- --template blog
-```
+A modern personal website and portfolio built with Astro, featuring user authentication and content management.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## ✨ Features
 
-Features:
-
-- ✅ Minimal styling (make it your own!)
-- ✅ 100/100 Lighthouse performance
-- ✅ SEO-friendly with canonical URLs and OpenGraph data
-- ✅ Sitemap support
-- ✅ RSS Feed support
-- ✅ Markdown & MDX support
+- ✅ Modern Astro framework with TypeScript
+- ✅ User authentication with Clerk
+- ✅ Real-time backend with Convex
+- ✅ Rich text editing capabilities
+- ✅ Responsive design with Tailwind CSS
+- ✅ Profile management system
+- ✅ Content creation and publishing
+- ✅ SEO-friendly with sitemap and RSS
+- ✅ MDX support for rich content
 
 ## 🚀 Project Structure
 
-Inside of your Astro project, you'll see the following folders and files:
-
 ```text
-├── public/
+├── convex/                 # Convex backend functions and schema
+├── public/                 # Static assets
 ├── src/
-│   ├── components/
-│   ├── content/
-│   ├── layouts/
-│   └── pages/
-├── astro.config.mjs
-├── README.md
-├── package.json
-└── tsconfig.json
+│   ├── components/         # Astro/React components
+│   ├── pages/             # File-based routing
+│   │   ├── api/           # API endpoints
+│   │   └── app/           # Authenticated app pages
+│   ├── scripts/           # Client-side scripts
+│   └── styles/            # CSS and styling
+├── astro.config.mjs       # Astro configuration
+└── package.json
 ```
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## 🛠️ Tech Stack
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
-
-The `src/content/` directory contains "collections" of related Markdown and MDX documents. Use `getCollection()` to retrieve posts from `src/content/blog/`, and type-check your frontmatter using an optional schema. See [Astro's Content Collections docs](https://docs.astro.build/en/guides/content-collections/) to learn more.
-
-Any static assets, like images, can be placed in the `public/` directory.
+- **Framework**: Astro 5.x with React integration
+- **Styling**: Tailwind CSS
+- **Authentication**: Clerk
+- **Backend**: Convex (real-time database)
+- **Rich Text**: TipTap editor
+- **Icons**: Astro Icon with Iconify
+- **Typography**: Geist Sans, Inter, JetBrains Mono
 
 ## 🧞 Commands
 
@@ -50,13 +50,36 @@ All commands are run from the root of the project, from a terminal:
 | `npm run dev`             | Starts local dev server at `localhost:4321`      |
 | `npm run build`           | Build your production site to `./dist/`          |
 | `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+| `npm run check`           | Run Astro's built-in type checking              |
+| `npm run format`          | Format code with Prettier                       |
+| `npm run lint`            | Lint code with ESLint                           |
+| `npm run lint:fix`        | Fix linting errors automatically                |
 
-## 👀 Want to learn more?
+## 🚀 Getting Started
 
-Check out [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+1. **Clone the repository**
+   ```sh
+   git clone https://github.com/ashvinpraveen/ashvinpraveen.git
+   cd ashvinpraveen
+   ```
 
-## Credit
+2. **Install dependencies**
+   ```sh
+   npm install
+   ```
 
-This theme is based off of the lovely [Bear Blog](https://github.com/HermanMartinus/bearblog/).
+3. **Set up environment variables**
+   Create a `.env` file with your Clerk and Convex credentials
+
+4. **Start development server**
+   ```sh
+   npm run dev
+   ```
+
+## 🌐 Deployment
+
+This site is configured for deployment on modern platforms like Vercel, Netlify, or Cloudflare Pages.
+
+## 📝 License
+
+Unlicensed - Personal project

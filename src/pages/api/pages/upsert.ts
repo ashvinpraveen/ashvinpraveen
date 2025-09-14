@@ -12,7 +12,9 @@ export const POST: APIRoute = async (ctx) => {
   const title = String(form.get('title') || '');
   const content = String(form.get('content') || '');
   if (!key || !title) return new Response('Bad request', { status: 400 });
+  const token = await auth.getToken();
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  client.setAuth(token);
   const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: auth.userId });
   const site = Array.isArray(sites) && sites[0] || null;
   if (!site) return new Response('No site', { status: 400 });

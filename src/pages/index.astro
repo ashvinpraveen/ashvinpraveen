@@ -1,61 +1,478 @@
 ---
 import BaseHead from '../components/BaseHead.astro';
 import CardLayout from '../components/CardLayout.astro';
-// Footer removed
-import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
-import { marked } from 'marked';
 export const prerender = false;
 
-const siteSlug = import.meta.env.DEFAULT_SITE_SLUG || '';
-let homeContent: any = null;
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  if (siteSlug) homeContent = await client.query(api.pages.getByKey, { siteSlug, key: 'home' });
-} catch {}
-const homeHtml = homeContent ? marked.parse(homeContent.content || '') : null;
+const user = await Astro.locals.currentUser();
 ---
 
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<BaseHead title="Claim Your Corner of the Internet" description="Create your personal website with beautiful design and powerful editing tools" />
+		<script
+			async
+			crossorigin="anonymous"
+			data-clerk-publishable-key={import.meta.env.PUBLIC_CLERK_PUBLISHABLE_KEY}
+			src="https://wise-lemur-24.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
+			type="text/javascript">
+		</script>
 	</head>
 	<body>
 		<CardLayout>
-				<main>
-					{homeHtml ? (
-						<div class="prose" set:html={homeHtml} />
-					) : (
-					<div class="intro mb-8">
-						<h1 class="text-primary mb-2">👋 Hey, I'm Ashvin</h1>
-						<p class="sub text-muted">Builder, thinker, and creator.</p>
+			<main>
+			<!-- Hero Section with Claim Form -->
+			<section id="claim-section" class="hero-section">
+				<div class="glass-card hero-card">
+					<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white/95 leading-tight">Claim Your Corner of the Internet</h1>
+					<p class="hero-subtitle">Create a beautiful personal website that's uniquely yours</p>
+
+					<div class="claim-form">
+						<div class="url-preview">yoursite.com/u/</div>
+						<div class="input-wrapper">
+							<input
+								type="text"
+								id="username-input"
+								placeholder="your-name"
+								class="username-input"
+								maxlength="30"
+							/>
+							<button class="claim-btn" id="claim-btn">
+								{user ? 'Go to Dashboard' : 'Claim Now'}
+							</button>
+						</div>
 					</div>
-				<p>
-					Welcome to my corner of the internet! I'm a builder, thinker, and creator passionate about 
-					technology, design, and the messy beautiful process of bringing ideas to life.
-				</p>
-				<p>
-					This is where I share my thoughts, experiments, and the things I'm learning along the way. 
-					From code to creativity, business to personal growth - it's all here.
-				</p>
-				<h2>What you'll find here</h2>
-				<ul>
-					<li><strong>Thoughts & Ideas:</strong> My take on technology, startups, and life</li>
-					<li><strong>Projects:</strong> Things I'm building and experimenting with</li>
-					<li><strong>Learning:</strong> Lessons from the journey of building things</li>
-					<li><strong>Resources:</strong> Tools and insights I find useful</li>
-				</ul>
-				<p>
-					Feel free to explore, and if something resonates with you, I'd love to hear about it. 
-					You can find me on the various platforms linked above.
-				</p>
-					<style>
-						.intro .sub { margin: 0; font-size: 1rem; line-height: 1.4; }
-					</style>
-					)}
-				</main>
+				</div>
+			</section>
+
+			<!-- Three Steps Section -->
+			<section class="steps-section">
+				<div class="glass-card">
+					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Get yours in 3 steps</h2>
+					<div class="steps-grid">
+						<div class="step">
+							<div class="step-number">1</div>
+							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Claim Your Name</h3>
+							<p>Choose your unique handle and reserve your space</p>
+						</div>
+						<div class="step">
+							<div class="step-number">2</div>
+							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Build Your Page</h3>
+							<p>Add your bio, projects, and links with in-place editing</p>
+						</div>
+						<div class="step">
+							<div class="step-number">3</div>
+							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">It Goes Live</h3>
+							<p>Your site is instantly published and ready to share</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Features Bento Grid -->
+			<section class="features-section">
+				<div class="glass-card">
+					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Everything you need</h2>
+					<div class="bento-grid">
+						<div class="bento-item large">
+							<div class="bento-icon">✨</div>
+							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Beautiful</h3>
+							<p>Stunning designs that make you stand out from the crowd</p>
+						</div>
+						<div class="bento-item">
+							<div class="bento-icon">✏️</div>
+							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Easy to Edit</h3>
+							<p>Click and type to edit anything</p>
+						</div>
+						<div class="bento-item">
+							<div class="bento-icon">🤖</div>
+							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Optimised for LLMs</h3>
+							<p>AI-friendly structure</p>
+						</div>
+						<div class="bento-item">
+							<div class="bento-icon">🔗</div>
+							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">All Your Links</h3>
+							<p>One place for everything</p>
+						</div>
+						<div class="bento-item large">
+							<div class="bento-icon">📝</div>
+							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Effortless Blogging</h3>
+							<p>Write and publish beautiful posts without the hassle</p>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<!-- Final CTA -->
+			<section class="final-cta-section">
+				<div class="glass-card cta-card">
+					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Ready to claim your corner?</h2>
+					<button class="final-cta-btn" onclick="document.getElementById('claim-section').scrollIntoView({behavior: 'smooth'})">
+						Claim Your Corner of the Internet
+					</button>
+				</div>
+			</section>
+			</main>
 		</CardLayout>
+
+		<script define:vars={{ user }}>
+			let clerk;
+			let isClerkLoaded = false;
+			let pendingUsername = '';
+
+			// Initialize when Clerk is loaded
+			window.addEventListener('load', async () => {
+				if (window.Clerk) {
+					await window.Clerk.load();
+					clerk = window.Clerk;
+					isClerkLoaded = true;
+					console.log('Clerk loaded successfully');
+				}
+			});
+
+			const usernameInput = document.getElementById('username-input');
+			const claimBtn = document.getElementById('claim-btn');
+
+			// Auto-focus the input
+			usernameInput?.focus();
+
+			// Function to handle successful authentication
+			function handleAuthSuccess(username) {
+				// Store username preference for onboarding
+				localStorage.setItem('preferredUsername', username);
+
+				// Redirect to onboarding
+				window.location.href = `/onboarding?username=${encodeURIComponent(username)}`;
+			}
+
+			// Handle claim button click
+			claimBtn?.addEventListener('click', async () => {
+				const username = usernameInput?.value.trim();
+
+				if (!username) {
+					usernameInput?.focus();
+					return;
+				}
+
+				// Update button to show loading state
+				const originalText = claimBtn.textContent;
+				claimBtn.textContent = 'Loading...';
+				claimBtn.disabled = true;
+
+				if (user) {
+					// User is already logged in, go to dashboard
+					handleAuthSuccess(username);
+					return;
+				}
+
+				// User not logged in - trigger Clerk sign-in modal
+				if (isClerkLoaded && clerk) {
+					try {
+						// Store the username they want to claim
+						pendingUsername = username;
+						localStorage.setItem('pendingUsername', username);
+
+						// Update button text
+						claimBtn.textContent = 'Opening sign-in...';
+
+						// Open the sign-in modal
+						clerk.openSignIn({
+							afterSignInUrl: `/onboarding?username=${encodeURIComponent(username)}`,
+							afterSignUpUrl: `/onboarding?username=${encodeURIComponent(username)}`,
+							redirectUrl: window.location.origin + `/onboarding?username=${encodeURIComponent(username)}`
+						});
+
+						// Reset button after a short delay (modal should be open)
+						setTimeout(() => {
+							if (claimBtn) {
+								claimBtn.textContent = originalText;
+								claimBtn.disabled = false;
+							}
+						}, 1500);
+
+					} catch (error) {
+						console.error('Error opening sign-in modal:', error);
+
+						// Reset button
+						claimBtn.textContent = originalText;
+						claimBtn.disabled = false;
+
+						// Fallback to regular sign-up page
+						window.location.href = `/sign-up?username=${encodeURIComponent(username)}`;
+					}
+				} else {
+					// Clerk not loaded yet, fallback to sign-up page
+					claimBtn.textContent = 'Redirecting...';
+					window.location.href = `/sign-up?username=${encodeURIComponent(username)}`;
+				}
+			});
+
+			// Listen for authentication changes
+			if (window.Clerk) {
+				window.Clerk.addListener('user', (user) => {
+					if (user && pendingUsername) {
+						handleAuthSuccess(pendingUsername);
+					}
+				});
+			}
+
+			// Handle enter key in input
+			usernameInput?.addEventListener('keypress', (e) => {
+				if (e.key === 'Enter') {
+					claimBtn?.click();
+				}
+			});
+
+			// Clean username input (only allow valid characters)
+			usernameInput?.addEventListener('input', (e) => {
+				const value = e.target.value;
+				const cleaned = value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+				if (value !== cleaned) {
+					e.target.value = cleaned;
+				}
+			});
+
+			// Update button text based on auth state
+			function updateButtonText() {
+				if (claimBtn) {
+					if (user) {
+						claimBtn.textContent = 'Go to Dashboard';
+					} else {
+						claimBtn.textContent = 'Claim Now';
+					}
+				}
+			}
+
+			// Update button text on load
+			updateButtonText();
+		</script>
 	</body>
 </html>
+
+<style>
+	/* Content sections spacing */
+	main {
+		display: flex;
+		flex-direction: column;
+		gap: 3rem;
+		max-width: none;
+	}
+
+	.glass-card {
+		background: hsl(0 0% 100% / 0.03);
+		border: 1px solid hsl(0 0% 100% / 0.08);
+		border-radius: 16px;
+		padding: 2.5rem;
+	}
+
+	/* Hero Section */
+	.hero-section {
+		text-align: center;
+	}
+
+
+	.hero-subtitle {
+		font-size: 1.25rem;
+		color: hsl(0 0% 100% / 0.8);
+		margin-bottom: 3rem;
+		max-width: 600px;
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.claim-form {
+		max-width: 500px;
+		margin: 0 auto;
+	}
+
+	.url-preview {
+		font-size: 1.1rem;
+		color: hsl(0 0% 100% / 0.7);
+		margin-bottom: 1rem;
+		font-family: 'JetBrains Mono', monospace;
+	}
+
+	.input-wrapper {
+		display: flex;
+		background: hsl(0 0% 100% / 0.1);
+		border: 2px solid hsl(0 0% 100% / 0.2);
+		border-radius: 16px;
+		overflow: hidden;
+		transition: all 0.3s ease;
+	}
+
+	.input-wrapper:focus-within {
+		border-color: hsl(235 100% 60%);
+		box-shadow: 0 0 0 3px hsl(235 100% 60% / 0.1);
+	}
+
+	.username-input {
+		flex: 1;
+		background: transparent;
+		border: none;
+		padding: 1.25rem 1.5rem;
+		font-size: 1.1rem;
+		color: hsl(0 0% 100% / 0.95);
+		outline: none;
+		font-family: 'JetBrains Mono', monospace;
+	}
+
+	.username-input::placeholder {
+		color: hsl(0 0% 100% / 0.5);
+	}
+
+	.claim-btn {
+		background: hsl(235 100% 60%);
+		color: white;
+		border: none;
+		padding: 1.25rem 2rem;
+		font-size: 1rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		white-space: nowrap;
+	}
+
+	.claim-btn:hover:not(:disabled) {
+		background: hsl(235 100% 65%);
+		transform: scale(1.02);
+	}
+
+	.claim-btn:disabled {
+		opacity: 0.7;
+		cursor: not-allowed;
+		transform: none;
+	}
+
+	/* Steps Section */
+
+	.steps-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 2rem;
+	}
+
+	.step {
+		text-align: center;
+		padding: 2rem;
+	}
+
+	.step-number {
+		width: 60px;
+		height: 60px;
+		border-radius: 50%;
+		background: hsl(235 100% 60%);
+		color: white;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-size: 1.5rem;
+		font-weight: 700;
+		margin: 0 auto 1.5rem;
+	}
+
+
+	.step p {
+		color: hsl(0 0% 100% / 0.8);
+		line-height: 1.6;
+	}
+
+	/* Features Bento Grid */
+
+	.bento-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.bento-item {
+		background: hsl(0 0% 100% / 0.05);
+		border: 1px solid hsl(0 0% 100% / 0.1);
+		border-radius: 16px;
+		padding: 2rem;
+		transition: all 0.3s ease;
+	}
+
+	.bento-item:hover {
+		background: hsl(0 0% 100% / 0.08);
+		transform: translateY(-4px);
+	}
+
+	.bento-item.large {
+		grid-column: span 2;
+	}
+
+	.bento-icon {
+		font-size: 2.5rem;
+		margin-bottom: 1rem;
+		display: block;
+	}
+
+
+	.bento-item p {
+		color: hsl(0 0% 100% / 0.8);
+		line-height: 1.6;
+		margin: 0;
+	}
+
+	/* Final CTA */
+	.final-cta-section {
+		text-align: center;
+		margin-bottom: 4rem;
+	}
+
+
+	.final-cta-btn {
+		background: hsl(235 100% 60%);
+		color: white;
+		border: none;
+		padding: 1.5rem 3rem;
+		font-size: 1.2rem;
+		font-weight: 600;
+		border-radius: 16px;
+		cursor: pointer;
+		transition: all 0.3s ease;
+	}
+
+	.final-cta-btn:hover {
+		background: hsl(235 100% 65%);
+		transform: translateY(-2px);
+		box-shadow: 0 8px 25px hsl(235 100% 60% / 0.3);
+	}
+
+	/* Responsive Design */
+	@media (max-width: 768px) {
+		main {
+			gap: 2rem;
+		}
+
+		.glass-card {
+			padding: 1.5rem;
+		}
+
+		.bento-item.large {
+			grid-column: span 1;
+		}
+
+		.input-wrapper {
+			flex-direction: column;
+		}
+
+		.claim-btn {
+			border-radius: 0 0 16px 16px;
+		}
+
+		.username-input {
+			border-radius: 16px 16px 0 0;
+		}
+
+
+		.steps-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.bento-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+</style>

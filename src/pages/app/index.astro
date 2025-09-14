@@ -1,51 +1,229 @@
 ---
 import BaseHead from "../../components/BaseHead.astro";
-import Header from "../../components/Header.astro";
+import CardLayout from "../../components/CardLayout.astro";
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../convex/_generated/api';
 export const prerender = false;
 
 const user = await Astro.locals.currentUser();
+const auth = Astro.locals.auth();
 if (!user) {
   return Astro.redirect("/sign-in");
 }
 
-// Ensure user + default site exists in Convex
-let siteLink: string | null = null;
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  const preferredUsername = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || undefined;
-  await client.mutation(api.sites.upsertUser, { clerkUserId: user.id, username: preferredUsername });
-  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
-  const first = Array.isArray(sites) && sites.length > 0 ? sites[0] : null;
-  siteLink = first ? `/u/${first.slug}` : null;
-} catch (e) {
-  // Convex not initialized yet or URL missing: keep dashboard minimal
-}
+// Redirect to user's personal page directly
+const preferredUsername = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || "user";
+return Astro.redirect(`/${preferredUsername}`);
 ---
 
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <BaseHead title="Dashboard" description="Your personal site dashboard" />
   </head>
   <body>
-    <Header />
-    <main class="container">
-      <h1>Welcome, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress}</h1>
-      <p>From here you can edit your site and write posts.</p>
-      <div class="actions">
-        <a class="card" href="/app/editor">Open Editor</a>
-        <a class="card" href="/app/posts">Manage Posts</a>
-        <a class="card" href="/app/pages">Pages (Home/About)</a>
-        {siteLink && (<a class="card" href={siteLink}>View Your Site</a>)}
-      </div>
-    </main>
+    <CardLayout>
+      <main>
+        <div class="dashboard-header">
+          <h1>Dashboard</h1>
+          <p class="welcome-text">Welcome back, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress?.split('@')[0]}</p>
+        </div>
+
+        <div class="quick-actions">
+          <h2>Quick Actions</h2>
+          <div class="actions-grid">
+            <a class="action-card primary" href={siteLink}>
+              <div class="action-icon">🌐</div>
+              <div class="action-content">
+                <h3>View Your Site</h3>
+                <p>See how your site looks to visitors</p>
+              </div>
+            </a>
+
+            <a class="action-card" href="/app/editor">
+              <div class="action-icon">✏️</div>
+              <div class="action-content">
+                <h3>Edit Content</h3>
+                <p>Update your bio, projects, and more</p>
+              </div>
+            </a>
+
+            <a class="action-card" href="/app/posts">
+              <div class="action-icon">📝</div>
+              <div class="action-content">
+                <h3>Manage Posts</h3>
+                <p>Write and publish blog posts</p>
+              </div>
+            </a>
+
+            <a class="action-card" href="/app/pages">
+              <div class="action-icon">📄</div>
+              <div class="action-content">
+                <h3>Custom Pages</h3>
+                <p>Create additional pages for your site</p>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div class="site-info">
+          <h2>Your Site</h2>
+          <div class="info-card">
+            <div class="info-row">
+              <span class="label">Profile URL:</span>
+              <a href={siteLink} class="profile-link">{siteLink}</a>
+            </div>
+            <div class="info-row">
+              <span class="label">Username:</span>
+              <span class="value">{preferredUsername}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="status active">Active</span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </CardLayout>
   </body>
 </html>
 
 <style>
-.container { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
-.actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 1rem; margin-top: 1rem; }
-.card { display:block; padding:1rem; border-radius:12px; border:1px solid var(--color-border-subtle); background: hsl(0 0% 100% / 0.03); text-decoration:none; color: var(--typography-link-hover); }
-.card:hover { background: hsl(0 0% 100% / 0.06); }
+.dashboard-header {
+  margin-bottom: 3rem;
+}
+
+.dashboard-header h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: hsl(0 0% 100% / 0.97);
+}
+
+.welcome-text {
+  color: hsl(0 0% 100% / 0.75);
+  font-size: 1.125rem;
+}
+
+.quick-actions {
+  margin-bottom: 3rem;
+}
+
+.quick-actions h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: hsl(0 0% 100% / 0.95);
+}
+
+.actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: hsl(0 0% 100% / 0.05);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+}
+
+.action-card:hover {
+  background: hsl(0 0% 100% / 0.08);
+  border-color: hsl(0 0% 100% / 0.2);
+  transform: translateY(-2px);
+}
+
+.action-card.primary {
+  background: hsl(235 100% 60% / 0.1);
+  border-color: hsl(235 100% 60% / 0.3);
+}
+
+.action-card.primary:hover {
+  background: hsl(235 100% 60% / 0.15);
+  border-color: hsl(235 100% 60% / 0.4);
+}
+
+.action-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  flex-shrink: 0;
+}
+
+.action-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: hsl(0 0% 100% / 0.95);
+}
+
+.action-content p {
+  margin: 0;
+  color: hsl(0 0% 100% / 0.7);
+  font-size: 0.9rem;
+}
+
+.site-info h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: hsl(0 0% 100% / 0.95);
+}
+
+.info-card {
+  background: hsl(0 0% 100% / 0.03);
+  border: 1px solid hsl(0 0% 100% / 0.08);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid hsl(0 0% 100% / 0.06);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.label {
+  color: hsl(0 0% 100% / 0.7);
+  font-weight: 500;
+}
+
+.value {
+  color: hsl(0 0% 100% / 0.9);
+}
+
+.profile-link {
+  color: hsl(235 100% 70%);
+  text-decoration: none;
+}
+
+.profile-link:hover {
+  text-decoration: underline;
+}
+
+.status.active {
+  color: hsl(120 100% 70%);
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .actions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
 </style>

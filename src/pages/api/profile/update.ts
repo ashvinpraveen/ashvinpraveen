@@ -12,22 +12,23 @@ export const POST: APIRoute = async (ctx) => {
 
   try {
     const body = await ctx.request.json();
-    const { title, slug, content } = body ?? {};
-    if (!title || !slug || !content) {
-      return new Response(JSON.stringify({ error: 'Missing fields' }), { status: 400 });
+    const { siteSlug, title, bio } = body ?? {};
+
+    if (!siteSlug) {
+      return new Response(JSON.stringify({ error: 'Missing siteSlug' }), { status: 400 });
     }
 
-    // Get the session token to pass to Convex
     const token = await auth.getToken();
-
     const client = new ConvexHttpClient(
       import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL
     );
-
-    // Set the token for auth in Convex
     client.setAuth(token);
 
-    await client.mutation(api.posts.createPost, { title, slug, content });
+    await client.mutation(api.profiles.updateProfile, {
+      siteSlug,
+      title: title || undefined,
+      bio: bio || undefined
+    });
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (err: any) {

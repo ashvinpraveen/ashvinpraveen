@@ -1,0 +1,772 @@
+---
+import BaseHead from "../components/BaseHead.astro";
+import CardLayout from "../components/CardLayout.astro";
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+
+export async function getStaticPaths() {
+  return [];
+}
+export const prerender = false;
+
+const { slug } = Astro.params;
+const user = await Astro.locals.currentUser();
+const auth = Astro.locals.auth();
+
+// Simple ownership check: if logged in user's username matches the slug
+let isOwner = false;
+if (user) {
+  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+  isOwner = userSlug.toLowerCase() === slug.toLowerCase();
+}
+
+// Mock profile data - will be replaced with real data later
+const profileData = {
+  name: slug.charAt(0).toUpperCase() + slug.slice(1),
+  bio: "Welcome to my personal website! I'm passionate about technology, creativity, and building amazing things.",
+  location: "San Francisco, CA",
+  website: "https://example.com",
+  social: {
+    twitter: "https://twitter.com/username",
+    linkedin: "https://linkedin.com/in/username",
+    github: "https://github.com/username"
+  },
+  projects: [
+    {
+      id: 1,
+      title: "Amazing Project",
+      description: "A revolutionary application that changes everything.",
+      url: "https://github.com/username/project",
+      status: "In Development"
+    },
+    {
+      id: 2,
+      title: "Another Cool Project",
+      description: "An innovative solution to a common problem.",
+      url: "https://project2.com",
+      status: "Live"
+    }
+  ],
+  posts: []
+};
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <BaseHead title={`${profileData.name}'s Profile`} description={profileData.bio} />
+  </head>
+  <body>
+    <CardLayout>
+      <main>
+        <!-- Profile Header -->
+        <div class="profile-header">
+          <div class="profile-info">
+            <div class="profile-avatar">
+              <img
+                src={user?.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profileData.name)}`}
+                alt={`${profileData.name}'s avatar`}
+                width="80"
+                height="80"
+              />
+            </div>
+            <div class="profile-details">
+              <h1 class="text-3xl md:text-4xl font-bold text-white/95 mb-2 editable-text" contenteditable={isOwner} data-field="name">
+                {profileData.name}
+              </h1>
+              <p class="text-lg text-white/80 mb-4 editable-text" contenteditable={isOwner} data-field="bio">
+                {profileData.bio}
+              </p>
+              <div class="profile-meta">
+                {profileData.location && (
+                  <span class="meta-item editable-text" contenteditable={isOwner} data-field="location">
+                    📍 {profileData.location}
+                  </span>
+                )}
+                {profileData.website && (
+                  <a href={profileData.website} class="meta-item link editable-text" contenteditable={isOwner} data-field="website">
+                    🌐 {profileData.website}
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {isOwner && (
+            <div class="edit-controls">
+              <button id="edit-toggle" class="edit-btn">
+                <span id="edit-icon">✏️</span>
+                <span id="edit-text">Edit Profile</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        <!-- Social Links -->
+        <section class="profile-section">
+          <h2 class="section-title">Connect</h2>
+          <div class="social-grid" id="social-links">
+            {Object.entries(profileData.social).map(([platform, url]) => (
+              <a href={url} class="social-card editable-link" data-platform={platform}>
+                <div class="social-icon">
+                  {platform === 'twitter' && '𝕏'}
+                  {platform === 'linkedin' && '💼'}
+                  {platform === 'github' && '💻'}
+                </div>
+                <span class="social-label">{platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
+                <span class="social-url editable-text" contenteditable={isOwner} data-field={`social.${platform}`}>
+                  {url}
+                </span>
+              </a>
+            ))}
+            {isOwner && (
+              <button class="social-card add-social" id="add-social-btn">
+                <div class="social-icon">+</div>
+                <span class="social-label">Add Link</span>
+              </button>
+            )}
+          </div>
+        </section>
+
+        <!-- Projects -->
+        <section class="profile-section">
+          <h2 class="section-title">Projects</h2>
+          <div class="projects-grid" id="projects-grid">
+            {profileData.projects.map((project) => (
+              <div class="project-card" data-project-id={project.id}>
+                <div class="project-header">
+                  <h3 class="project-title editable-text" contenteditable={isOwner} data-field={`project.${project.id}.title`}>
+                    {project.title}
+                  </h3>
+                  <span class={`project-status status-${project.status.toLowerCase().replace(' ', '-')}`}>
+                    {project.status}
+                  </span>
+                </div>
+                <p class="project-description editable-text" contenteditable={isOwner} data-field={`project.${project.id}.description`}>
+                  {project.description}
+                </p>
+                <div class="project-footer">
+                  <a href={project.url} class="project-link editable-text" contenteditable={isOwner} data-field={`project.${project.id}.url`}>
+                    View Project →
+                  </a>
+                  {isOwner && (
+                    <button class="project-delete" data-project-id={project.id}>
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            {isOwner && (
+              <div class="project-card add-project" id="add-project-btn">
+                <div class="add-project-content">
+                  <div class="add-project-icon">+</div>
+                  <span>Add New Project</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <!-- Recent Posts (if any) -->
+        {profileData.posts.length > 0 && (
+          <section class="profile-section">
+            <h2 class="section-title">Recent Posts</h2>
+            <div class="posts-grid">
+              {profileData.posts.slice(0, 6).map((post) => (
+                <article class="post-card">
+                  <h3><a href={`/u/${slug}/${post.slug}`}>{post.title}</a></h3>
+                  {post.description && <p class="post-description">{post.description}</p>}
+                  {post.publishedAt && (
+                    <time class="post-date">
+                      {new Date(post.publishedAt).toLocaleDateString()}
+                    </time>
+                  )}
+                </article>
+              ))}
+            </div>
+            {profileData.posts.length > 6 && (
+              <a href={`/u/${slug}/posts`} class="view-all-posts">View all posts →</a>
+            )}
+          </section>
+        )}
+
+        {isOwner && (
+          <div class="debug-info">
+            <strong>Debug:</strong> isOwner={isOwner}, slug={slug}
+          </div>
+        )}
+      </main>
+    </CardLayout>
+    <script define:vars={{ slug, isOwner }}>
+      let isEditing = false;
+      const siteSlug = slug;
+      let changeTimeout;
+
+      // Initialize edit functionality
+      if (isOwner) {
+        const editToggle = document.getElementById('edit-toggle');
+        const editableElements = document.querySelectorAll('.editable-text');
+
+        editToggle?.addEventListener('click', function() {
+          isEditing = !isEditing;
+
+          if (isEditing) {
+            enterEditMode();
+          } else {
+            exitEditMode();
+          }
+        });
+
+        function enterEditMode() {
+          // Update button
+          document.getElementById('edit-icon').textContent = '💾';
+          document.getElementById('edit-text').textContent = 'Save Changes';
+
+          // Add editing class to body for global styling
+          document.body.classList.add('editing-mode');
+
+          // Enable editing on all editable elements
+          editableElements.forEach(element => {
+            element.classList.add('editing-active');
+          });
+
+          // Add instructions
+          showEditInstructions();
+        }
+
+        function exitEditMode() {
+          // Update button
+          document.getElementById('edit-icon').textContent = '💾';
+          document.getElementById('edit-text').textContent = 'Saving...';
+          editToggle.disabled = true;
+
+          // Collect all changes
+          const changes = {};
+          editableElements.forEach(element => {
+            const field = element.dataset.field;
+            if (field) {
+              changes[field] = element.textContent.trim();
+            }
+          });
+
+          // Save changes
+          saveChanges(changes);
+        }
+
+        function showEditInstructions() {
+          const existingInstructions = document.getElementById('edit-instructions');
+          if (existingInstructions) return;
+
+          const instructions = document.createElement('div');
+          instructions.id = 'edit-instructions';
+          instructions.className = 'edit-instructions';
+          instructions.innerHTML = `
+            <p>✨ Edit mode active! Click on any text to start editing. Changes will be saved automatically.</p>
+          `;
+
+          editToggle.parentElement.appendChild(instructions);
+        }
+
+        function saveChanges(changes) {
+          fetch('/api/profile/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              siteSlug: siteSlug,
+              changes: changes
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            // Reset UI
+            document.getElementById('edit-icon').textContent = '✏️';
+            document.getElementById('edit-text').textContent = 'Edit Profile';
+            editToggle.disabled = false;
+
+            document.body.classList.remove('editing-mode');
+            editableElements.forEach(element => {
+              element.classList.remove('editing-active');
+            });
+
+            // Remove instructions
+            document.getElementById('edit-instructions')?.remove();
+
+            // Show success message
+            showMessage('✅ Changes saved successfully!', 'success');
+          })
+          .catch(error => {
+            console.error('Save error:', error);
+
+            // Reset UI on error
+            document.getElementById('edit-icon').textContent = '✏️';
+            document.getElementById('edit-text').textContent = 'Edit Profile';
+            editToggle.disabled = false;
+
+            showMessage('❌ Failed to save changes. Please try again.', 'error');
+          });
+        }
+
+        function showMessage(text, type) {
+          const message = document.createElement('div');
+          message.className = `save-message ${type}`;
+          message.textContent = text;
+          editToggle.parentElement.appendChild(message);
+
+          setTimeout(() => message.remove(), 3000);
+        }
+
+        // Add project management
+        document.getElementById('add-project-btn')?.addEventListener('click', function() {
+          if (isEditing) {
+            addNewProject();
+          }
+        });
+
+        function addNewProject() {
+          const projectsGrid = document.getElementById('projects-grid');
+          const addButton = document.getElementById('add-project-btn');
+
+          const newProject = document.createElement('div');
+          newProject.className = 'project-card';
+          newProject.innerHTML = `
+            <div class="project-header">
+              <h3 class="project-title editable-text" contenteditable="true" data-field="project.new.title">
+                New Project
+              </h3>
+              <span class="project-status status-in-development">In Development</span>
+            </div>
+            <p class="project-description editable-text" contenteditable="true" data-field="project.new.description">
+              Describe your project here...
+            </p>
+            <div class="project-footer">
+              <a href="#" class="project-link editable-text" contenteditable="true" data-field="project.new.url">
+                https://github.com/username/project
+              </a>
+              <button class="project-delete" onclick="this.parentElement.parentElement.remove()">
+                🗑️
+              </button>
+            </div>
+          `;
+
+          projectsGrid.insertBefore(newProject, addButton);
+        }
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  main {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: none;
+  }
+
+  /* Profile Header */
+  .profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .profile-info {
+    display: flex;
+    gap: 1.5rem;
+    flex: 1;
+  }
+
+  .profile-avatar {
+    flex-shrink: 0;
+  }
+
+  .profile-avatar img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid hsl(0 0% 100% / 0.1);
+  }
+
+  .profile-details {
+    flex: 1;
+  }
+
+  .profile-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .meta-item {
+    color: hsl(0 0% 100% / 0.7);
+    font-size: 0.9rem;
+    text-decoration: none;
+  }
+
+  .meta-item.link:hover {
+    color: hsl(235 100% 70%);
+  }
+
+  /* Edit Controls */
+  .edit-controls {
+    flex-shrink: 0;
+  }
+
+  .edit-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: hsl(235 100% 60%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .edit-btn:hover:not(:disabled) {
+    background: hsl(235 100% 65%);
+    transform: translateY(-2px);
+  }
+
+  .edit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Sections */
+  .profile-section {
+    margin-bottom: 3rem;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: hsl(0 0% 100% / 0.95);
+  }
+
+  /* Social Links */
+  .social-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+
+  .social-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: hsl(0 0% 100% / 0.03);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s ease;
+  }
+
+  .social-card:hover:not(.add-social) {
+    background: hsl(0 0% 100% / 0.05);
+    border-color: hsl(0 0% 100% / 0.15);
+    transform: translateY(-2px);
+  }
+
+  .social-card.add-social {
+    background: hsl(0 0% 100% / 0.05);
+    border: 2px dashed hsl(0 0% 100% / 0.2);
+    cursor: pointer;
+    justify-content: center;
+  }
+
+  .social-card.add-social:hover {
+    border-color: hsl(235 100% 60%);
+    background: hsl(235 100% 60% / 0.05);
+  }
+
+  .social-icon {
+    font-size: 1.5rem;
+    width: 2rem;
+    text-align: center;
+  }
+
+  .social-label {
+    font-weight: 500;
+    color: hsl(0 0% 100% / 0.9);
+  }
+
+  .social-url {
+    font-size: 0.875rem;
+    color: hsl(0 0% 100% / 0.7);
+    flex: 1;
+  }
+
+  /* Projects */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .project-card {
+    background: hsl(0 0% 100% / 0.03);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .project-card:hover:not(.add-project) {
+    background: hsl(0 0% 100% / 0.05);
+    border-color: hsl(0 0% 100% / 0.15);
+    transform: translateY(-2px);
+  }
+
+  .project-card.add-project {
+    background: hsl(0 0% 100% / 0.05);
+    border: 2px dashed hsl(0 0% 100% / 0.2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 150px;
+  }
+
+  .project-card.add-project:hover {
+    border-color: hsl(235 100% 60%);
+    background: hsl(235 100% 60% / 0.05);
+  }
+
+  .add-project-content {
+    text-align: center;
+    color: hsl(0 0% 100% / 0.7);
+  }
+
+  .add-project-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+  }
+
+  .project-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    color: hsl(0 0% 100% / 0.95);
+  }
+
+  .project-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .status-live {
+    background: hsl(120 100% 25%);
+    color: hsl(120 100% 80%);
+  }
+
+  .status-in-development {
+    background: hsl(45 100% 25%);
+    color: hsl(45 100% 80%);
+  }
+
+  .project-description {
+    color: hsl(0 0% 100% / 0.8);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .project-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .project-link {
+    color: hsl(235 100% 70%);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .project-link:hover {
+    text-decoration: underline;
+  }
+
+  .project-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+
+  .project-delete:hover {
+    opacity: 1;
+  }
+
+  /* Editing States */
+  .editing-mode .editable-text {
+    background: hsl(235 100% 60% / 0.1);
+    border: 2px dashed hsl(235 100% 60% / 0.3);
+    border-radius: 8px;
+    padding: 0.25rem 0.5rem;
+    margin: -0.25rem -0.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .editing-mode .editable-text:hover {
+    background: hsl(235 100% 60% / 0.15);
+    border-color: hsl(235 100% 60% / 0.5);
+  }
+
+  .editing-mode .editable-text:focus {
+    outline: none;
+    background: hsl(235 100% 60% / 0.2);
+    border-color: hsl(235 100% 60%);
+  }
+
+  .edit-instructions {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: hsl(235 100% 60% / 0.1);
+    border: 1px solid hsl(235 100% 60% / 0.3);
+    border-radius: 8px;
+    color: hsl(235 100% 80%);
+    font-style: italic;
+  }
+
+  .save-message {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-weight: 500;
+  }
+
+  .save-message.success {
+    background: hsl(120 100% 25%);
+    color: hsl(120 100% 80%);
+  }
+
+  .save-message.error {
+    background: hsl(0 100% 25%);
+    color: hsl(0 100% 80%);
+  }
+
+  /* Debug */
+  .debug-info {
+    margin-top: 2rem;
+    padding: 1rem;
+    background: hsl(0 0% 100% / 0.03);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    color: hsl(0 0% 100% / 0.7);
+  }
+
+  /* Posts */
+  .posts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .post-card {
+    background: hsl(0 0% 100% / 0.03);
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.2s ease;
+  }
+
+  .post-card:hover {
+    background: hsl(0 0% 100% / 0.05);
+    border-color: hsl(0 0% 100% / 0.15);
+    transform: translateY(-2px);
+  }
+
+  .post-card h3 {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+  }
+
+  .post-card h3 a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  .post-card h3 a:hover {
+    color: hsl(235 100% 70%);
+  }
+
+  .post-description {
+    opacity: 0.8;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+
+  .post-date {
+    font-size: 0.9rem;
+    opacity: 0.6;
+  }
+
+  .view-all-posts {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: hsl(0 0% 100% / 0.05);
+    border: 1px solid hsl(0 0% 100% / 0.15);
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .view-all-posts:hover {
+    background: hsl(0 0% 100% / 0.08);
+    border-color: hsl(0 0% 100% / 0.25);
+    transform: translateX(4px);
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .profile-header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .profile-info {
+      flex-direction: column;
+      text-align: center;
+    }
+
+    .social-grid,
+    .projects-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .posts-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .post-card {
+      padding: 1rem;
+    }
+  }
+</style>

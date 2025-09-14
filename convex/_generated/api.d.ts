@@ -15,6 +15,7 @@ import type {
 } from "convex/server";
 import type * as pages from "../pages.js";
 import type * as posts from "../posts.js";
+import type * as profiles from "../profiles.js";
 import type * as sites from "../sites.js";
 
 /**
@@ -28,6 +29,7 @@ import type * as sites from "../sites.js";
 declare const fullApi: ApiFromModules<{
   pages: typeof pages;
   posts: typeof posts;
+  profiles: typeof profiles;
   sites: typeof sites;
 }>;
 export declare const api: FilterApi<
