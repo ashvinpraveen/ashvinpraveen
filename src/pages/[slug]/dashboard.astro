@@ -1,0 +1,303 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import CardLayout from '../../components/CardLayout.astro';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
+
+const { slug } = Astro.params;
+const user = await Astro.locals.currentUser();
+
+if (!user) {
+  return Astro.redirect('/sign-in');
+}
+
+// Determine if this is the owner's dashboard; if not, redirect to their own dashboard
+const authedSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
+if ((slug || '').toLowerCase() !== authedSlug.toLowerCase()) {
+  return Astro.redirect(`/${authedSlug}/dashboard`);
+}
+
+// Resolve site slug from Convex (source of truth)
+let siteSlug = authedSlug;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+  const site = Array.isArray(sites) && sites[0] || null;
+  if (site) siteSlug = site.slug;
+} catch {}
+
+const siteLink = `/${siteSlug}`;
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <BaseHead title="Dashboard" description="Manage your site settings" />
+  </head>
+  <body>
+    <CardLayout>
+      <main>
+        <div class="dashboard-header">
+          <h1>Dashboard</h1>
+          <p class="welcome-text">Welcome back, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress?.split('@')[0]}</p>
+        </div>
+
+        <div class="site-info">
+          <h2>Your Site</h2>
+          <div class="info-card">
+            <div class="info-row">
+              <span class="label">Profile URL:</span>
+              <a href={siteLink} class="profile-link">{siteLink}</a>
+            </div>
+            <div class="info-row">
+              <span class="label">Username:</span>
+              <span class="value">{siteSlug}</span>
+            </div>
+            <div class="info-row">
+              <span class="label">Status:</span>
+              <span class="status active">Active</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="settings" class="settings">
+          <h2>Settings</h2>
+          <form id="settings-form" method="post" action="/api/settings/update">
+            <input type="hidden" name="slug" value={siteSlug} />
+
+            <div class="grid">
+              <label>
+                <span>Site Name</span>
+                <input type="text" name="name" placeholder="My Site" />
+              </label>
+
+              <label>
+                <span>Custom Domain</span>
+                <input type="text" name="customDomain" placeholder="yourdomain.com" />
+              </label>
+
+              <label class="full">
+                <span>SEO Title</span>
+                <input type="text" name="seoTitle" placeholder="Title for search engines" />
+              </label>
+
+              <label class="full">
+                <span>SEO Description</span>
+                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social"></textarea>
+              </label>
+
+              <div class="uploader">
+                <div>
+                  <span>Social Image</span>
+                  <input type="file" id="og-file" accept="image/*" />
+                  <input type="hidden" name="ogImageId" id="ogImageId" />
+                </div>
+                <img id="og-preview" alt="OG Preview" style="display:none;" />
+              </div>
+
+              <label>
+                <span>Theme</span>
+                <select name="themeMode" id="themeMode">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Background</span>
+                <input type="color" name="backgroundColor" id="backgroundColor" value="#000000" />
+              </label>
+
+              <label>
+                <span>Body Font</span>
+                <select name="fontBody" id="fontBody">
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                </select>
+              </label>
+
+              <label>
+                <span>Heading Font</span>
+                <select name="fontHeading" id="fontHeading">
+                  <option value="'Geist Sans', system-ui, sans-serif">Geist Sans</option>
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                </select>
+              </label>
+
+              <div class="social full">
+                <span>Social Links</span>
+                <div id="social-list" class="social-list"></div>
+                <div class="social-add">
+                  <select id="social-platform">
+                    <option value="github">GitHub</option>
+                    <option value="linkedin">LinkedIn</option>
+                    <option value="x">X / Twitter</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="website">Website</option>
+                  </select>
+                  <input type="url" id="social-url" placeholder="https://..." />
+                  <button type="button" id="add-social">Add</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="save">Save</button>
+              <span id="status" class="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </main>
+    </CardLayout>
+
+    <script is:inline define:vars={{ siteSlug }}>
+      const form = document.getElementById('settings-form');
+      const statusEl = document.getElementById('status');
+      const siteSlugVar = siteSlug;
+
+      async function loadSettings() {
+        try {
+          const res = await fetch(`/api/settings/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          const data = await res.json();
+          const s = data?.settings || {};
+          for (const [k,v] of Object.entries(s)) {
+            const el = form && form.elements && form.elements.namedItem ? form.elements.namedItem(k) : null;
+            if (el && typeof v === 'string') el.value = v;
+          }
+          applyAppearance();
+          await loadSocial();
+        } catch {}
+      }
+
+      function applyAppearance() {
+        const themeMode = document.getElementById('themeMode')?.value || 'dark';
+        const bgc = document.getElementById('backgroundColor')?.value;
+        const fontBody = document.getElementById('fontBody')?.value;
+        const fontHeading = document.getElementById('fontHeading')?.value;
+        const root = document.documentElement;
+        root.setAttribute('data-theme', themeMode);
+        root.style.setProperty('--font-family-body', fontBody);
+        root.style.setProperty('--font-family-heading', fontHeading);
+        document.body.style.backgroundColor = bgc || 'transparent';
+      }
+
+      document.getElementById('themeMode')?.addEventListener('change', applyAppearance);
+      document.getElementById('backgroundColor')?.addEventListener('input', applyAppearance);
+      document.getElementById('fontBody')?.addEventListener('change', applyAppearance);
+      document.getElementById('fontHeading')?.addEventListener('change', applyAppearance);
+
+      async function uploadImage(file) {
+        const b64 = await fileToBase64(file);
+        const payload = { imageData: b64.split(',')[1], filename: file.name, mimeType: file.type };
+        try {
+          const res = await fetch('/api/images/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) return null;
+          const json = await res.json();
+          return json?.imageId || null;
+        } catch { return null; }
+      }
+      function fileToBase64(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
+
+      const ogFile = document.getElementById('og-file');
+      const ogImageIdInput = document.getElementById('ogImageId');
+      const ogPreview = document.getElementById('og-preview');
+      ogFile?.addEventListener('change', async () => {
+        const file = ogFile.files && ogFile.files[0]; if (!file) return;
+        ogPreview.src = URL.createObjectURL(file); ogPreview.style.display = 'block';
+        const id = await uploadImage(file); if (id) ogImageIdInput.value = id;
+      });
+
+      async function loadSocial() {
+        try {
+          const res = await fetch(`/api/profile/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const links = data?.socialLinks || [];
+          const container = document.getElementById('social-list');
+          if (!container) return;
+          container.innerHTML = '';
+          links.forEach((l) => {
+            const item = document.createElement('div');
+            item.className = 'social-item';
+            item.innerHTML = `
+              <span class=\"platform\">${l.platform}</span>
+              <a class=\"url\" href=\"${l.url}\" target=\"_blank\" rel=\"noreferrer\">${l.url}</a>
+              <button type=\"button\" data-id=\"${l._id}\">Remove</button>
+            `;
+            const btn = item.querySelector('button');
+            btn && btn.addEventListener('click', async () => {
+              await fetch('/api/profile/social/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkId: l._id }) });
+              loadSocial();
+            });
+            container.appendChild(item);
+          });
+        } catch {}
+      }
+
+      document.getElementById('add-social')?.addEventListener('click', async () => {
+        const platform = document.getElementById('social-platform').value;
+        const url = document.getElementById('social-url').value;
+        if (!url) return;
+        await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform, url }) });
+        document.getElementById('social-url').value = '';
+        loadSocial();
+      });
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault(); if (statusEl) statusEl.textContent = 'Saving…';
+        const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+        if (statusEl) statusEl.textContent = res.ok ? 'Saved' : 'Failed to save';
+      });
+
+      loadSettings();
+    </script>
+  </body>
+</html>
+
+<style>
+.dashboard-header { margin-bottom: 2rem; }
+.dashboard-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: hsl(0 0% 100% / 0.97); }
+.welcome-text { color: hsl(0 0% 100% / 0.75); font-size: 1.025rem; }
+
+.site-info h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
+.info-card { background: hsl(0 0% 100% / 0.03); border: 1px solid hsl(0 0% 100% / 0.08); border-radius: 12px; padding: 1.5rem; }
+.info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid hsl(0 0% 100% / 0.06); }
+.info-row:last-child { border-bottom: none; }
+.label { color: hsl(0 0% 100% / 0.7); font-weight: 500; }
+.value { color: hsl(0 0% 100% / 0.9); }
+.profile-link { color: hsl(235 100% 70%); text-decoration: none; }
+.profile-link:hover { text-decoration: underline; }
+.status.active { color: hsl(120 100% 70%); font-weight: 500; }
+
+.settings { margin-top: 2rem; }
+.settings h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.grid .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: .5rem; }
+label span { color: var(--typography-muted); font-size: .9rem; }
+input[type="text"], input[type="url"], textarea, select, input[type="color"] {
+  background: hsl(0 0% 100% / 0.05);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  color: hsl(0 0% 100% / 0.95);
+  border-radius: 10px; padding: .6rem .75rem; font: inherit;
+}
+.uploader { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
+.uploader img { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid hsl(0 0% 100% / 0.1); }
+.social-list { display: grid; gap: .5rem; margin-top: .5rem; }
+.social-item { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: .75rem; padding: .5rem .75rem; border: 1px solid var(--color-border-subtle); border-radius: 10px; }
+.social-item .platform { color: var(--typography-muted); text-transform: capitalize; }
+.social-item .url { color: var(--typography-link); text-decoration: none; }
+.social-item button, .actions .save, #add-social { padding: .6rem .85rem; border-radius: 10px; border: 1px solid hsl(0 0% 100% / 0.15); background: hsl(0 0% 100% / 0.08); color: inherit; cursor: pointer; }
+.social-add { display: flex; gap: .5rem; margin-top: .5rem; }
+.actions { display: flex; align-items: center; gap: .75rem; margin-top: 1rem; }
+.status { color: var(--typography-subtle); }
+
+@media (max-width: 768px) {
+  .info-row { flex-direction: column; align-items: flex-start; gap: .4rem; }
+}
+</style>
+

@@ -1,4 +1,5 @@
 ---
+// BaseHead is the shared head component used across pages. It injects global CSS, fonts, favicons, SEO/meta tags (Open Graph/Twitter), the RSS link, and the Clerk auth script. Pages include it in their <head> via <BaseHead ... /> to keep head content consistent.
 // Import the global.css file here so that it is included on
 // all pages through the use of the <BaseHead /> component.
 import '../styles/global.css';
@@ -11,11 +12,12 @@ interface Props {
 	title: string;
 	description: string;
 	image?: ImageMetadata;
+	imageUrl?: string; // optional absolute/relative URL for social sharing
 }
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image = FallbackImage } = Astro.props;
+const { title, description, image = FallbackImage, imageUrl } = Astro.props as Props;
 ---
 
 <!-- Global Metadata -->
@@ -51,14 +53,14 @@ const { title, description, image = FallbackImage } = Astro.props;
 <meta property="og:url" content={Astro.url} />
 <meta property="og:title" content={title} />
 <meta property="og:description" content={description} />
-<meta property="og:image" content={new URL(image.src, Astro.url)} />
+<meta property="og:image" content={imageUrl ? new URL(imageUrl, Astro.url) : new URL(image.src, Astro.url)} />
 
 <!-- Twitter -->
 <meta property="twitter:card" content="summary_large_image" />
 <meta property="twitter:url" content={Astro.url} />
 <meta property="twitter:title" content={title} />
 <meta property="twitter:description" content={description} />
-<meta property="twitter:image" content={new URL(image.src, Astro.url)} />
+<meta property="twitter:image" content={imageUrl ? new URL(imageUrl, Astro.url) : new URL(image.src, Astro.url)} />
 
 <!-- Clerk Authentication -->
 <script
@@ -68,3 +70,21 @@ const { title, description, image = FallbackImage } = Astro.props;
   src="https://wise-lemur-24.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
   type="text/javascript">
 </script>
+
+<!-- Lucide Icons (global) -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<script is:inline>
+  // Initialize Lucide icons when DOM is ready
+  (function(){
+    function init(){
+      if (typeof lucide !== 'undefined') {
+        try { lucide.createIcons(); } catch {}
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>

@@ -1,11 +1,19 @@
 ---
 import BaseHead from '../../components/BaseHead.astro';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 import CardLayout from '../../components/CardLayout.astro';
 import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
 import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
 const { slug } = Astro.params;
+let siteSettings: any = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  siteSettings = await client.query(api.sites.getSettings, { slug });
+} catch {}
 const user = await Astro.locals.currentUser();
 
 // For now, we'll check if the slug matches the current user
@@ -23,7 +31,7 @@ const pageDescription = `Learn more about ${slug}`;
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={pageTitle} description={pageDescription} />
+		<BaseHead title={siteSettings?.seoTitle || pageTitle} description={siteSettings?.seoDescription || pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
 	<body data-is-owner={isOwner} data-slug={slug}>
@@ -46,6 +54,9 @@ const pageDescription = `Learn more about ${slug}`;
 			</main>
 		</CardLayout>
 		<GlobalEditToggle isOwner={isOwner} />
+
+		<!-- Convex Provider Wrapper for Real-time Streaming -->
+		<ConvexProviderWrapper slug={slug} editorId="editor" isOwner={isOwner} client:load />
 
 		<!-- ============================================ -->
 		<!-- MINIMAL STYLES FOR EDITOR CONTAINER -->
@@ -87,6 +98,7 @@ const pageDescription = `Learn more about ${slug}`;
 		<!-- INITIALIZE EDIT MODE FROM GLOBAL TOGGLE -->
 		<!-- ============================================ -->
 		<script type="module">
+			console.log('🚨 About page script starting to load...');
 			let isEditMode = false;
 
 			// Get page configuration from data attributes
@@ -100,8 +112,10 @@ const pageDescription = `Learn more about ${slug}`;
 
 			// Initialize when page loads
 			document.addEventListener('DOMContentLoaded', function() {
+				console.log('🌟 About page DOM loaded, starting initialization...');
 				const config = getPageConfig();
-				console.log('About page loaded, setting up edit mode integration...');
+				console.log('⚙️ Page config:', config);
+				console.log('🔧 About page loaded, setting up edit mode integration...');
 
 				// Listen for global edit mode changes
 				window.addEventListener('editModeChanged', function(e) {

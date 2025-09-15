@@ -12,7 +12,7 @@ const { title } = Astro.props;
 
 <MacOSMenuBar />
 <div class="card-wrapper">
-  <div class="gradient-background"></div>
+  <div class="gradient-background" id="bg-layer"></div>
   <div class="main-card">
     <SideNavigation />
     <div class="content-area">
@@ -21,6 +21,35 @@ const { title } = Astro.props;
   </div>
 </div>
 <MobileNav />
+
+<script is:inline>
+  (async function applyUserAppearance() {
+    try {
+      const path = location.pathname.replace(/^\/+/, '');
+      const seg = path.split('/')[0] || '';
+      const mainPages = new Set(['', 'app','blog','about','onboarding','sign-in','sign-up']);
+      if (mainPages.has(seg)) return;
+      const res = await fetch(`/api/settings/get?slug=${encodeURIComponent(seg)}`);
+      if (!res.ok) return;
+      const s = (await res.json())?.settings || {};
+      const root = document.documentElement;
+      if (s.themeMode && s.themeMode !== 'auto') root.setAttribute('data-theme', s.themeMode);
+      if (s.primaryColor) {
+        root.style.setProperty('--typography-link', s.primaryColor);
+        root.style.setProperty('--typography-link-hover', s.primaryColor);
+      }
+      if (s.backgroundColor) document.body.style.backgroundColor = s.backgroundColor;
+      if (s.fontBody) root.style.setProperty('--font-family-body', s.fontBody);
+      if (s.fontHeading) root.style.setProperty('--font-family-heading', s.fontHeading);
+      // Background image: if available, fetch via images endpoint
+      if (s.backgroundImageId) {
+        const url = `/api/images/${s.backgroundImageId}`;
+        const bg = document.getElementById('bg-layer');
+        if (bg) bg.style.backgroundImage = `url('${url}')`;
+      }
+    } catch {}
+  })();
+</script>
 
 <style>
   .card-wrapper {

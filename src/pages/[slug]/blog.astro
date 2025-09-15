@@ -1,10 +1,17 @@
 ---
 import BaseHead from '../../components/BaseHead.astro';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 import CardLayout from '../../components/CardLayout.astro';
 import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
 export const prerender = false;
 
 const { slug } = Astro.params;
+let siteSettings: any = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  siteSettings = await client.query(api.sites.getSettings, { slug });
+} catch {}
 const user = await Astro.locals.currentUser();
 
 // For now, we'll check if the slug matches the current user
@@ -23,7 +30,7 @@ const pageDescription = `Blog posts by ${slug}`;
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={pageTitle} description={pageDescription} />
+		<BaseHead title={siteSettings?.seoTitle || pageTitle} description={siteSettings?.seoDescription || pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
 		<script src="https://unpkg.com/@tiptap/core@2.1.16/dist/index.umd.min.js"></script>
 		<script src="https://unpkg.com/@tiptap/pm@2.1.16/dist/index.umd.min.js"></script>
 		<script src="https://unpkg.com/@tiptap/starter-kit@2.1.16/dist/index.umd.min.js"></script>

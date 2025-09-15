@@ -21,6 +21,13 @@ if (user) {
   isOwner = userSlug.toLowerCase() === slug.toLowerCase();
 }
 
+// Load site settings for SEO if available
+let siteSettings: any = null;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  siteSettings = await client.query(api.sites.getSettings, { slug });
+} catch {}
+
 // Mock profile data - will be replaced with real data later
 const profileData = {
   name: slug.charAt(0).toUpperCase() + slug.slice(1),
@@ -54,7 +61,7 @@ const profileData = {
 
 <html lang="en" data-theme="dark">
   <head>
-    <BaseHead title={`${profileData.name}'s Profile`} description={profileData.bio} />
+    <BaseHead title={siteSettings?.seoTitle || `${profileData.name}'s Profile`} description={siteSettings?.seoDescription || profileData.bio} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
   </head>
   <body>
     <CardLayout>

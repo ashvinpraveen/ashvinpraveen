@@ -2,6 +2,8 @@
 import { SITE_TITLE } from '../consts';
 import HeaderLink from './HeaderLink.astro';
 import { Icon } from 'astro-icon/components';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
 
 export const prerender = false;
 
@@ -21,6 +23,7 @@ const isUserPage = !isMainSitePage && pathParts.length > 0;
 
 let currentUserSlug = null;
 let isCurrentUserOwner = false;
+let socialLinks: Array<{ platform: string; url: string }> = [];
 
 if (isUserPage) {
   currentUserSlug = pathParts[0]; // /username/...
@@ -33,6 +36,15 @@ if (isUserPage) {
 
 // Determine if the authenticated user is currently viewing their own page
 const isViewingOwnPage = isUserPage && isCurrentUserOwner;
+
+// Load social links for user page to show in footer
+if (isUserPage && currentUserSlug) {
+  try {
+    const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+    const profile = await client.query(api.profiles.getProfile, { siteSlug: currentUserSlug });
+    socialLinks = (profile?.socialLinks || []).map((l: any) => ({ platform: l.platform, url: l.url }));
+  } catch {}
+}
 ---
 
 <nav class="side-nav">
@@ -69,7 +81,7 @@ const isViewingOwnPage = isUserPage && isCurrentUserOwner;
         </HeaderLink>
 
         {isCurrentUserOwner && (
-          <HeaderLink href="/app" class="nav-link admin-link">
+          <HeaderLink href={`/${currentUserSlug}/dashboard`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Dashboard</span>
           </HeaderLink>
@@ -94,7 +106,7 @@ const isViewingOwnPage = isUserPage && isCurrentUserOwner;
         </HeaderLink>
 
         {isAuthenticated && (
-          <HeaderLink href="/app" class="nav-link admin-link">
+          <HeaderLink href={`/${preferredUsername}/dashboard`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Dashboard</span>
           </HeaderLink>
@@ -147,21 +159,31 @@ const isViewingOwnPage = isUserPage && isCurrentUserOwner;
 
   <div class="nav-footer">
     <div class="social-links">
-      <a href="https://github.com/ashvinpraveen" aria-label="GitHub" class="social-link">
-        <Icon name="simple-icons:github" width="18" height="18" />
-      </a>
-      <a href="https://linkedin.com/in/ashvinpraveen" aria-label="LinkedIn" class="social-link">
-        <Icon name="simple-icons:linkedin" width="18" height="18" />
-      </a>
-      <a href="https://x.com/ashvinpk" aria-label="X" class="social-link">
-        <Icon name="simple-icons:x" width="18" height="18" />
-      </a>
-      <a href="https://instagram.com/ashvinpraveen" aria-label="Instagram" class="social-link">
-        <Icon name="simple-icons:instagram" width="18" height="18" />
-      </a>
-      <a href="https://threads.net/ashvinpraveen" aria-label="Threads" class="social-link">
-        <Icon name="simple-icons:threads" width="18" height="18" />
-      </a>
+      {socialLinks.length > 0 ? (
+        socialLinks.map((l) => (
+          <a href={l.url} aria-label={l.platform} class="social-link">
+            <Icon name={`simple-icons:${l.platform === 'x' ? 'x' : l.platform}`} width="18" height="18" />
+          </a>
+        ))
+      ) : (
+        <>
+          <a href="https://github.com/ashvinpraveen" aria-label="GitHub" class="social-link">
+            <Icon name="simple-icons:github" width="18" height="18" />
+          </a>
+          <a href="https://linkedin.com/in/ashvinpraveen" aria-label="LinkedIn" class="social-link">
+            <Icon name="simple-icons:linkedin" width="18" height="18" />
+          </a>
+          <a href="https://x.com/ashvinpk" aria-label="X" class="social-link">
+            <Icon name="simple-icons:x" width="18" height="18" />
+          </a>
+          <a href="https://instagram.com/ashvinpraveen" aria-label="Instagram" class="social-link">
+            <Icon name="simple-icons:instagram" width="18" height="18" />
+          </a>
+          <a href="https://threads.net/ashvinpraveen" aria-label="Threads" class="social-link">
+            <Icon name="simple-icons:threads" width="18" height="18" />
+          </a>
+        </>
+      )}
     </div>
   </div>
 </nav>

@@ -17,6 +17,23 @@ export const getByKey = query({
   },
 });
 
+export const getBySlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const { slug } = args;
+    // For about pages, we'll use the slug as both siteSlug and key
+    const site = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first();
+    if (!site) return null;
+    return ctx.db
+      .query('pages')
+      .withIndex('by_site_key', (q) => q.eq('siteId', site._id).eq('key', slug))
+      .first();
+  },
+});
+
 export const upsert = mutation({
   args: { siteSlug: v.string(), key: v.string(), title: v.string(), content: v.string() },
   handler: async (ctx, args) => {

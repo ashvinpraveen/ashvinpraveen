@@ -16,6 +16,19 @@ export default defineSchema({
     // Profile information
     title: v.optional(v.string()), // Display name/title
     bio: v.optional(v.string()), // Bio/description
+    // SEO settings
+    seoTitle: v.optional(v.string()),
+    seoDescription: v.optional(v.string()),
+    ogImageId: v.optional(v.id('images')),
+    // Appearance settings
+    themeMode: v.optional(v.string()), // 'light' | 'dark' | 'auto'
+    primaryColor: v.optional(v.string()), // CSS color
+    backgroundColor: v.optional(v.string()),
+    backgroundImageId: v.optional(v.id('images')),
+    fontBody: v.optional(v.string()),
+    fontHeading: v.optional(v.string()),
+    // Domain
+    customDomain: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_slug', ['slug']).index('by_owner', ['ownerId']),

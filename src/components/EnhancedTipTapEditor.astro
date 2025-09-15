@@ -631,25 +631,31 @@ const {
 	}
 
 	async function saveToConvex(content, slug) {
-		try {
-			const formData = new FormData();
-			formData.append('key', slug);
-			formData.append('title', 'About');
-			formData.append('content', content);
+		// Check if Convex data manager is available (from React component)
+		if (typeof window !== 'undefined' && window.convexDataManager) {
+			window.convexDataManager.saveContent(content);
+		} else {
+			// Fallback to manual API call if streaming not available
+			try {
+				const formData = new FormData();
+				formData.append('key', slug);
+				formData.append('title', 'About');
+				formData.append('content', content);
 
-			const response = await fetch('/api/pages/upsert', {
-				method: 'POST',
-				body: formData
-			});
+				const response = await fetch('/api/pages/upsert', {
+					method: 'POST',
+					body: formData
+				});
 
-			if (response.ok) {
-				console.log('✅ Content saved to Convex successfully');
-			} else {
-				const errorText = await response.text();
-				console.error('❌ Failed to save to Convex:', response.status, errorText);
+				if (response.ok) {
+					console.log('✅ Content saved to Convex via API fallback');
+				} else {
+					const errorText = await response.text();
+					console.error('❌ Failed to save to Convex:', response.status, errorText);
+				}
+			} catch (error) {
+				console.error('❌ Failed to save to Convex:', error);
 			}
-		} catch (error) {
-			console.error('❌ Failed to save to Convex:', error);
 		}
 	}
 
@@ -697,9 +703,11 @@ const {
 	}
 
 	function initializeEnhancedEditor() {
+		console.log('🚀 Starting EnhancedTipTapEditor initialization...');
 		const config = getEditorConfig();
+		console.log('📊 Editor config:', config);
 		if (!config) {
-			console.error('Enhanced TipTap Editor: Could not find editor configuration');
+			console.error('❌ Enhanced TipTap Editor: Could not find editor configuration');
 			return;
 		}
 
@@ -758,20 +766,31 @@ const {
 			);
 		}
 
-		editor = new Editor({
-			element: document.querySelector(`#${config.id}`),
-			extensions: extensions,
-			content: getInitialContent(),
-			editable: config.editable,
-			editorProps: {
-				attributes: {
-					class: 'prose prose-invert max-w-none',
+		console.log('🎯 Creating TipTap Editor with extensions:', extensions.length);
+		console.log('📝 Initial content:', getInitialContent());
+		console.log('🔧 Editor element found:', document.querySelector(`#${config.id}`));
+
+		try {
+			editor = new Editor({
+				element: document.querySelector(`#${config.id}`),
+				extensions: extensions,
+				content: getInitialContent(),
+				editable: config.editable,
+				editorProps: {
+					attributes: {
+						class: 'prose prose-invert max-w-none',
+					},
 				},
-			},
-			onUpdate: ({ editor }) => {
-				handleContentChange(editor.getHTML());
-			},
-		});
+				onUpdate: ({ editor }) => {
+					console.log('✏️ Editor content updated');
+					handleContentChange(editor.getHTML());
+				},
+			});
+			console.log('✅ TipTap Editor created successfully:', editor);
+		} catch (error) {
+			console.error('❌ Failed to create TipTap Editor:', error);
+			return;
+		}
 
 		// Setup event listeners
 		setupEnhancedMenuEventListeners();
