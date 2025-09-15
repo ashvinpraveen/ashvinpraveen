@@ -10,16 +10,10 @@ const { isOwner } = Astro.props;
   <div id="global-edit-toggle" class="edit-toggle">
     <button id="edit-mode-btn" class="toggle-btn" data-mode="view">
       <div class="toggle-icon" id="edit-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-          <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-        </svg>
+        <i data-lucide="edit"></i>
       </div>
       <div class="toggle-icon" id="view-icon">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
+        <i data-lucide="eye"></i>
       </div>
     </button>
     <div class="tooltip">
@@ -83,10 +77,10 @@ const { isOwner } = Astro.props;
     transition: all 0.3s ease;
   }
 
-  .toggle-icon svg {
+  .toggle-icon i[data-lucide] {
     width: 16px;
     height: 16px;
-    stroke: hsl(0 0% 40%);
+    color: hsl(0 0% 40%);
     transition: all 0.3s ease;
   }
 
@@ -179,7 +173,7 @@ const { isOwner } = Astro.props;
       height: 14px;
     }
 
-    .toggle-icon svg {
+    .toggle-icon i[data-lucide] {
       width: 14px;
       height: 14px;
     }
@@ -354,8 +348,18 @@ const { isOwner } = Astro.props;
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initializeGlobalEditToggle);
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeGlobalEditToggle();
+      // Initialize Lucide icons
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
   } else {
     initializeGlobalEditToggle();
+    // Initialize Lucide icons
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
 </script>
