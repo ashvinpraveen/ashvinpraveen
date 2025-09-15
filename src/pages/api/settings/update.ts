@@ -15,8 +15,8 @@ export const POST: APIRoute = async (ctx) => {
 
     let effectiveSlug = slug;
     const clientList = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-    const token2 = await auth.getToken();
-    clientList.setAuth(token2);
+    const token2 = await auth.getToken({ template: 'convex' });
+    if (token2) clientList.setAuth(token2);
     try {
       const sites = await clientList.query(api.sites.listSitesForClerk, { clerkUserId: auth.userId });
       const site = Array.isArray(sites) && sites[0] || null;
@@ -37,9 +37,9 @@ export const POST: APIRoute = async (ctx) => {
     if (ogImageId) payload.ogImageId = ogImageId as any;
     if (backgroundImageId) payload.backgroundImageId = backgroundImageId as any;
 
-    const token = await auth.getToken();
+    const token = await auth.getToken({ template: 'convex' });
     const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-    client.setAuth(token);
+    if (token) client.setAuth(token);
 
     // Ensure the user exists and has a site with this slug
     await client.mutation(api.sites.upsertUser, { clerkUserId: auth.userId, username: slug });

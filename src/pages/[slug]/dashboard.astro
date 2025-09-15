@@ -32,102 +32,36 @@ const siteLink = `/${siteSlug}`;
 
 <html lang="en" data-theme="dark">
   <head>
-    <BaseHead title="Dashboard" description="Manage your site settings" />
+    <BaseHead title="Settings" description="Manage your site settings" />
   </head>
   <body>
     <CardLayout>
       <main>
         <div class="dashboard-header">
-          <h1>Dashboard</h1>
+          <h1>Settings</h1>
           <p class="welcome-text">Welcome back, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress?.split('@')[0]}</p>
         </div>
 
-        <div class="site-info">
-          <h2>Your Site</h2>
-          <div class="info-card">
-            <div class="info-row">
-              <span class="label">Profile URL:</span>
-              <a href={siteLink} class="profile-link">{siteLink}</a>
-            </div>
-            <div class="info-row">
-              <span class="label">Username:</span>
-              <span class="value">{siteSlug}</span>
-            </div>
-            <div class="info-row">
-              <span class="label">Status:</span>
-              <span class="status active">Active</span>
-            </div>
-          </div>
-        </div>
-
         <div id="settings" class="settings">
-          <h2>Settings</h2>
           <form id="settings-form" method="post" action="/api/settings/update">
             <input type="hidden" name="slug" value={siteSlug} />
 
+            <!-- Your Site -->
+            <h2 class="section-title">Your Site</h2>
             <div class="grid">
               <label>
                 <span>Site Name</span>
                 <input type="text" name="name" placeholder="My Site" />
               </label>
-
               <label>
                 <span>Custom Domain</span>
                 <input type="text" name="customDomain" placeholder="yourdomain.com" />
               </label>
+            </div>
 
-              <label class="full">
-                <span>SEO Title</span>
-                <input type="text" name="seoTitle" placeholder="Title for search engines" />
-              </label>
-
-              <label class="full">
-                <span>SEO Description</span>
-                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social"></textarea>
-              </label>
-
-              <div class="uploader">
-                <div>
-                  <span>Social Image</span>
-                  <input type="file" id="og-file" accept="image/*" />
-                  <input type="hidden" name="ogImageId" id="ogImageId" />
-                </div>
-                <img id="og-preview" alt="OG Preview" style="display:none;" />
-              </div>
-
-              <label>
-                <span>Theme</span>
-                <select name="themeMode" id="themeMode">
-                  <option value="dark">Dark</option>
-                  <option value="light">Light</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Background</span>
-                <input type="color" name="backgroundColor" id="backgroundColor" value="#000000" />
-              </label>
-
-              <label>
-                <span>Body Font</span>
-                <select name="fontBody" id="fontBody">
-                  <option value="Inter, system-ui, sans-serif">Inter</option>
-                  <option value="system-ui, sans-serif">System Sans</option>
-                  <option value="Georgia, serif">Georgia</option>
-                  <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
-                </select>
-              </label>
-
-              <label>
-                <span>Heading Font</span>
-                <select name="fontHeading" id="fontHeading">
-                  <option value="'Geist Sans', system-ui, sans-serif">Geist Sans</option>
-                  <option value="Inter, system-ui, sans-serif">Inter</option>
-                  <option value="system-ui, sans-serif">System Sans</option>
-                  <option value="Georgia, serif">Georgia</option>
-                </select>
-              </label>
-
+            <!-- Socials -->
+            <h2 class="section-title">Socials</h2>
+            <div class="grid">
               <div class="social full">
                 <span>Social Links</span>
                 <div id="social-list" class="social-list"></div>
@@ -142,6 +76,61 @@ const siteLink = `/${siteSlug}`;
                   <input type="url" id="social-url" placeholder="https://..." />
                   <button type="button" id="add-social">Add</button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Personalisation -->
+            <h2 class="section-title">Personalisation</h2>
+            <div class="grid">
+              <label>
+                <span>Theme</span>
+                <select name="themeMode" id="themeMode">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+              <label>
+                <span>Background</span>
+                <input type="color" name="backgroundColor" id="backgroundColor" value="#000000" />
+              </label>
+              <label>
+                <span>Body Font</span>
+                <select name="fontBody" id="fontBody">
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                </select>
+              </label>
+              <label>
+                <span>Heading Font</span>
+                <select name="fontHeading" id="fontHeading">
+                  <option value="'Geist Sans', system-ui, sans-serif">Geist Sans</option>
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                </select>
+              </label>
+            </div>
+
+            <!-- SEO settings -->
+            <h2 class="section-title">SEO settings</h2>
+            <div class="grid">
+              <label class="full">
+                <span>SEO Title</span>
+                <input type="text" name="seoTitle" placeholder="Title for search engines" />
+              </label>
+              <label class="full">
+                <span>SEO Description</span>
+                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social"></textarea>
+              </label>
+              <div class="uploader">
+                <div>
+                  <span>Social Image</span>
+                  <input type="file" id="og-file" accept="image/*" />
+                  <input type="hidden" name="ogImageId" id="ogImageId" />
+                </div>
+                <img id="og-preview" alt="OG Preview" style="display:none;" />
               </div>
             </div>
 
@@ -232,9 +221,26 @@ const siteLink = `/${siteSlug}`;
             btn && btn.addEventListener('click', async () => {
               await fetch('/api/profile/social/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkId: l._id }) });
               loadSocial();
+              // Also refresh the side navigation footer socials to reflect changes
+              refreshSideNavSocials();
             });
             container.appendChild(item);
           });
+        } catch {}
+      }
+
+      async function refreshSideNavSocials() {
+        try {
+          const res = await fetch(location.pathname, { credentials: 'same-origin' });
+          if (!res.ok) return;
+          const html = await res.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const fresh = doc.querySelector('.side-nav .social-links');
+          const target = document.querySelector('.side-nav .social-links');
+          if (fresh && target) {
+            target.innerHTML = fresh.innerHTML;
+          }
         } catch {}
       }
 
@@ -245,6 +251,8 @@ const siteLink = `/${siteSlug}`;
         await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform, url }) });
         document.getElementById('social-url').value = '';
         loadSocial();
+        // Update sidebar socials without a full reload
+        refreshSideNavSocials();
       });
 
       form?.addEventListener('submit', async (e) => {
@@ -263,18 +271,9 @@ const siteLink = `/${siteSlug}`;
 .dashboard-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: hsl(0 0% 100% / 0.97); }
 .welcome-text { color: hsl(0 0% 100% / 0.75); font-size: 1.025rem; }
 
-.site-info h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
-.info-card { background: hsl(0 0% 100% / 0.03); border: 1px solid hsl(0 0% 100% / 0.08); border-radius: 12px; padding: 1.5rem; }
-.info-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid hsl(0 0% 100% / 0.06); }
-.info-row:last-child { border-bottom: none; }
-.label { color: hsl(0 0% 100% / 0.7); font-weight: 500; }
-.value { color: hsl(0 0% 100% / 0.9); }
-.profile-link { color: hsl(235 100% 70%); text-decoration: none; }
-.profile-link:hover { text-decoration: underline; }
-.status.active { color: hsl(120 100% 70%); font-weight: 500; }
-
 .settings { margin-top: 2rem; }
 .settings h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
+.settings .section-title { margin-top: 2rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .grid .full { grid-column: 1 / -1; }
 label { display: flex; flex-direction: column; gap: .5rem; }
@@ -300,4 +299,3 @@ input[type="text"], input[type="url"], textarea, select, input[type="color"] {
   .info-row { flex-direction: column; align-items: flex-start; gap: .4rem; }
 }
 </style>
-

@@ -1,5 +1,4 @@
 ---
-import MacOSMenuBar from './MacOSMenuBar.astro';
 import SideNavigation from './SideNavigation.astro';
 import MobileNav from './MobileNav.astro';
 
@@ -10,7 +9,6 @@ interface Props {
 const { title } = Astro.props;
 ---
 
-<MacOSMenuBar />
 <div class="card-wrapper">
   <div class="gradient-background" id="bg-layer"></div>
   <div class="main-card">
@@ -58,7 +56,7 @@ const { title } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3rem 1rem 2rem 1rem;
+    padding: 2rem 1rem 2rem 1rem;
   }
 
   .gradient-background {

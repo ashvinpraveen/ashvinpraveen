@@ -55,7 +55,11 @@ const isActive = (href: string) => {
   .item i[data-lucide] {
     width: 20px;
     height: 20px;
+    /* Thinner stroke for mobile nav icons */
+    stroke-width: 1.33px;
   }
+  /* Ensure any Lucide icons within mobile nav use 1pt stroke */
+  .mobile-nav :global([data-lucide]) { stroke-width: 1.33px; }
   .item.active { color: var(--typography-link-hover); }
   .item:hover { color: var(--typography-link); }
 
@@ -78,4 +82,3 @@ const isActive = (href: string) => {
     initializeMobileNav();
   }
 </script>
-

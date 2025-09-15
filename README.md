@@ -141,14 +141,7 @@ All commands are run from the root of the project, from a terminal:
 
 ### 🚧 Known Issues
 
-1. **Convex API Generation**: The `convex/_generated/api.js` file is generating `anyApi` instead of proper typed API
-   - **Status**: Under investigation
-   - **Workaround**: Functions exist and work, but TypeScript typing is generic
-   - **Next Steps**: Debug Convex dev server configuration
-
-2. **Image Upload 500 Error**: Server error when uploading images due to Convex API issue
-   - **Status**: Related to issue #1 above
-   - **Environment**: Convex URL properly configured, server running correctly
+- None currently. Previous Convex API typing and image upload errors are resolved.
 
 ### 🔄 Recent Session Summary (September 2024)
 
@@ -179,11 +172,9 @@ All commands are run from the root of the project, from a terminal:
 
 ### 🎯 Next Steps
 
-1. **Resolve Convex API Issues**: Debug and fix the generated API for proper typing
-2. **Complete Image Upload Flow**: Once Convex is working, test full upload pipeline
-3. **Add TipTap to Other Pages**: Implement the editor component on blog posts and other content
-4. **Enhance Media Support**: Add more embed types (Twitter, GitHub Gists, CodePen)
-5. **Performance Optimization**: Add lazy loading and caching for images
+1. **Add TipTap to Other Pages**: Implement the editor component on blog posts and other content
+2. **Enhance Media Support**: Add more embed types (Twitter, GitHub Gists, CodePen)
+3. **Performance Optimization**: Add lazy loading and caching for images
 
 ### 📚 Development Learnings
 

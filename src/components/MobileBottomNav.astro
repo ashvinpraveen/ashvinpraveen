@@ -70,12 +70,17 @@ import HeaderLink from './HeaderLink.astro';
     height: 24px;
     opacity: 0.8;
     transition: opacity 0.2s ease;
+    /* Thinner stroke for mobile bottom nav icons */
+    stroke-width: 1.33px;
   }
 
   .mobile-bottom-nav :global(.nav-item:hover i[data-lucide]),
   .mobile-bottom-nav :global(.nav-item.active i[data-lucide]) {
     opacity: 1;
   }
+
+  /* Ensure any Lucide icons within bottom nav use 1pt stroke */
+  .mobile-bottom-nav :global([data-lucide]) { stroke-width: 1.33px; }
 
   .mobile-bottom-nav :global(.nav-item span) {
     font-size: 0.7rem;

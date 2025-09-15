@@ -83,7 +83,7 @@ if (isUserPage && currentUserSlug) {
         {isCurrentUserOwner && (
           <HeaderLink href={`/${currentUserSlug}/dashboard`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
-            <span>Dashboard</span>
+            <span>Settings</span>
           </HeaderLink>
         )}
       </>
@@ -108,7 +108,7 @@ if (isUserPage && currentUserSlug) {
         {isAuthenticated && (
           <HeaderLink href={`/${preferredUsername}/dashboard`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
-            <span>Dashboard</span>
+            <span>Settings</span>
           </HeaderLink>
         )}
       </>
@@ -273,11 +273,18 @@ if (isUserPage && currentUserSlug) {
     height: 20px;
     opacity: 0.8;
     transition: opacity 0.2s ease;
+    /* Make nav icons thinner */
+    stroke-width: 1.33px;
   }
 
   .nav-links :global(.nav-link:hover i[data-lucide]),
   .nav-links :global(.nav-link.active i[data-lucide]) {
     opacity: 1;
+  }
+
+  /* Ensure any Lucide icons within the side nav use 1pt stroke */
+  .side-nav :global([data-lucide]) {
+    stroke-width: 1.33px;
   }
 
   .user-status {
