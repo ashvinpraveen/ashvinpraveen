@@ -18,10 +18,10 @@
 
 :root {
 	/* Core design tokens - prefer Tailwind classes when possible */
-	--accent: hsl(235 100% 60%);
+	--accent: hsl(0, 0%, 76%);
 
 	/* Typography system */
-	--font-family-heading: 'Inter', system-ui, sans-serif;
+	--font-family-heading: 'Geist Sans', system-ui, sans-serif;
 	--font-family-body: 'Inter', 'Atkinson', sans-serif;
 	--font-weight-heading: 600;
 	--font-weight-bold: 700;
