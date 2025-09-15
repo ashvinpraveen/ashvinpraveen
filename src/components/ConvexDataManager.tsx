@@ -6,19 +6,49 @@ interface ConvexDataManagerProps {
   slug: string;
   editorId: string;
   isOwner: boolean;
+  pageKey?: string; // Optional page key for differentiation
+  pageTitle?: string; // Optional page title
 }
 
-export default function ConvexDataManager({ slug, editorId, isOwner }: ConvexDataManagerProps) {
-  console.log('🔄 ConvexDataManager loading with props:', { slug, editorId, isOwner });
+export default function ConvexDataManager({ slug, editorId, isOwner, pageKey, pageTitle }: ConvexDataManagerProps) {
+  console.log('🔄 ConvexDataManager loading with props:', { slug, editorId, isOwner, pageKey, pageTitle });
+  console.log('🔍 Component render count:', Math.random()); // Debug: see if component re-renders
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
   const isSavingRef = useRef<boolean>(false);
 
+  // Create unique storage key for this page
+  const storageKey = pageKey || slug;
+  console.log('🗝️ Current storage key:', storageKey);
+
   // Live query for content - automatically updates when data changes
-  const pageContent = useQuery(api.pages.getBySlug, { slug });
-  console.log('📊 Convex query result:', pageContent);
+  const pageContent = useQuery(api.pages.getByKey, { siteSlug: slug, key: storageKey });
+  console.log('📊 Convex query result for key:', storageKey, pageContent);
+
+  // Track if we're loading content for the current page
+  const isLoadingContent = pageContent === undefined;
+  const previousStorageKey = useRef<string>(storageKey);
 
   // Mutation for saving content
   const updatePage = useMutation(api.pages.upsert);
+
+  // Detect page transitions and clear stale content
+  useEffect(() => {
+    if (previousStorageKey.current !== storageKey) {
+      console.log('🔄 Page transition detected:', previousStorageKey.current, '→', storageKey);
+
+      // Clear editor content temporarily to prevent flash of wrong content
+      if (typeof window !== 'undefined') {
+        const globalWindow = window as {[key: string]: any};
+        const editorInstance = globalWindow[`${editorId}Editor`];
+        if (editorInstance && editorInstance.getEditor()) {
+          console.log('🧹 Clearing editor content during transition');
+          editorInstance.setContent('<p>Loading...</p>');
+        }
+      }
+
+      previousStorageKey.current = storageKey;
+    }
+  }, [storageKey, editorId]);
 
   // When content changes from Convex, update the editor (but not if we're currently saving)
   useEffect(() => {
@@ -28,13 +58,18 @@ export default function ConvexDataManager({ slug, editorId, isOwner }: ConvexDat
       if (editorInstance && editorInstance.getEditor()) {
         const currentContent = editorInstance.getContent();
         // Only update if content is significantly different (avoid cursor jumps from minor formatting differences)
-        if (currentContent !== pageContent.content) {
-          console.log('🔄 Updating editor from Convex (external change detected)');
+        if (currentContent !== pageContent.content && currentContent !== '<p>Loading...</p>') {
+          console.log('🔄 Updating editor from Convex (external change detected for key:', storageKey, ')');
+          editorInstance.setContent(pageContent.content);
+        } else if (currentContent === '<p>Loading...</p>') {
+          console.log('🎯 Loading new content for key:', storageKey);
           editorInstance.setContent(pageContent.content);
         }
       }
+    } else if (isLoadingContent) {
+      console.log('⏳ Waiting for content to load for key:', storageKey);
     }
-  }, [pageContent?.content, editorId]);
+  }, [pageContent?.content, editorId, storageKey, isSavingRef]);
 
   // Expose save function to window for the Astro component to use
   useEffect(() => {
@@ -45,8 +80,8 @@ export default function ConvexDataManager({ slug, editorId, isOwner }: ConvexDat
         isSavingRef.current = true; // Prevent content updates during save
         await updatePage({
           siteSlug: slug,
-          key: slug,
-          title: 'About',
+          key: storageKey,
+          title: pageTitle || 'Page',
           content
         });
         console.log('✅ Content saved to Convex via live mutation');

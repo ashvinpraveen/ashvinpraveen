@@ -2,6 +2,8 @@
 import BaseHead from "../components/BaseHead.astro";
 import CardLayout from "../components/CardLayout.astro";
 import GlobalEditToggle from "../components/GlobalEditToggle.astro";
+import EnhancedTipTapEditor from "../components/EnhancedTipTapEditor.astro";
+import ConvexProviderWrapper from "../components/ConvexProviderWrapper.tsx";
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
 
@@ -28,692 +30,127 @@ try {
   siteSettings = await client.query(api.sites.getSettings, { slug });
 } catch {}
 
-// Mock profile data - will be replaced with real data later
-const profileData = {
-  name: slug.charAt(0).toUpperCase() + slug.slice(1),
-  bio: "Welcome to my personal website! I'm passionate about technology, creativity, and building amazing things.",
-  location: "San Francisco, CA",
-  website: "https://example.com",
-  social: {
-    twitter: "https://twitter.com/username",
-    linkedin: "https://linkedin.com/in/username",
-    github: "https://github.com/username"
-  },
-  projects: [
-    {
-      id: 1,
-      title: "Amazing Project",
-      description: "A revolutionary application that changes everything.",
-      url: "https://github.com/username/project",
-      status: "In Development"
-    },
-    {
-      id: 2,
-      title: "Another Cool Project",
-      description: "An innovative solution to a common problem.",
-      url: "https://project2.com",
-      status: "Live"
-    }
-  ],
-  posts: []
-};
+const pageTitle = siteSettings?.seoTitle || `${slug.charAt(0).toUpperCase() + slug.slice(1)}'s Profile`;
+const pageDescription = siteSettings?.seoDescription || `Welcome to ${slug}'s personal profile page`;
 ---
 
+<!doctype html>
 <html lang="en" data-theme="dark">
-  <head>
-    <BaseHead title={siteSettings?.seoTitle || `${profileData.name}'s Profile`} description={siteSettings?.seoDescription || profileData.bio} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
-  </head>
-  <body>
-    <CardLayout>
-      <main>
-        <!-- Profile Header -->
-        <div class="profile-header">
-          <div class="profile-info">
-            <div class="profile-avatar">
-              <img
-                src={user?.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(profileData.name)}`}
-                alt={`${profileData.name}'s avatar`}
-                width="80"
-                height="80"
-              />
-            </div>
-            <div class="profile-details">
-              <h1 class="text-3xl md:text-4xl font-bold text-white/95 mb-2 editable-text" contenteditable="false" data-field="name">
-                {profileData.name}
-              </h1>
-              <p class="text-lg text-white/80 mb-4 editable-text" contenteditable="false" data-field="bio">
-                {profileData.bio}
-              </p>
-              <div class="profile-meta">
-                {profileData.location && (
-                  <span class="meta-item editable-text" contenteditable="false" data-field="location">
-                    📍 {profileData.location}
-                  </span>
-                )}
-                {profileData.website && (
-                  <a href={profileData.website} class="meta-item link editable-text" contenteditable="false" data-field="website">
-                    🌐 {profileData.website}
-                  </a>
-                )}
-              </div>
-            </div>
-          </div>
+	<head>
+		<BaseHead title={pageTitle} description={pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+	</head>
+	<body data-is-owner={isOwner} data-slug={slug}>
+		<CardLayout>
+			<main>
+				<!-- ============================================ -->
+				<!-- ENHANCED TIPTAP EDITOR FOR PROFILE PAGE -->
+				<!-- ============================================ -->
+				<EnhancedTipTapEditor
+					id="profile-editor"
+					placeholder={isOwner ? 'Start writing your profile...' : 'No profile content yet.'}
+					editable={false}
+					showBubbleMenu={true}
+					showContextMenu={true}
+					showUploadModal={true}
+					isOwner={isOwner}
+					slug={slug}
+					pageKey="profile"
+					class="editor-container"
+				/>
+			</main>
+		</CardLayout>
+		<GlobalEditToggle isOwner={isOwner} />
 
-        </div>
+		<!-- Convex Provider Wrapper for Real-time Streaming -->
+		<ConvexProviderWrapper key="profile-page" slug={slug} editorId="profile-editor" isOwner={isOwner} pageKey="profile" pageTitle="Profile" client:load />
 
-        <!-- Social Links -->
-        <section class="profile-section">
-          <h2 class="section-title">Connect</h2>
-          <div class="social-grid" id="social-links">
-            {Object.entries(profileData.social).map(([platform, url]) => (
-              <a href={url} class="social-card editable-link" data-platform={platform}>
-                <div class="social-icon">
-                  {platform === 'twitter' && '𝕏'}
-                  {platform === 'linkedin' && '💼'}
-                  {platform === 'github' && '💻'}
-                </div>
-                <span class="social-label">{platform.charAt(0).toUpperCase() + platform.slice(1)}</span>
-                <span class="social-url editable-text" contenteditable="false" data-field={`social.${platform}`}>
-                  {url}
-                </span>
-              </a>
-            ))}
-            {isOwner && (
-              <button class="social-card add-social" id="add-social-btn">
-                <div class="social-icon">+</div>
-                <span class="social-label">Add Link</span>
-              </button>
-            )}
-          </div>
-        </section>
+		<!-- ============================================ -->
+		<!-- MINIMAL STYLES FOR EDITOR CONTAINER -->
+		<!-- ============================================ -->
+		<style>
+			/* Override global main constraints for full-width editor with high specificity */
+			:global(.content-area) main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-        <!-- Projects -->
-        <section class="profile-section">
-          <h2 class="section-title">Projects</h2>
-          <div class="projects-grid" id="projects-grid">
-            {profileData.projects.map((project) => (
-              <div class="project-card" data-project-id={project.id}>
-                <div class="project-header">
-                  <h3 class="project-title editable-text" contenteditable="false" data-field={`project.${project.id}.title`}>
-                    {project.title}
-                  </h3>
-                  <span class={`project-status status-${project.status.toLowerCase().replace(' ', '-')}`}>
-                    {project.status}
-                  </span>
-                </div>
-                <p class="project-description editable-text" contenteditable="false" data-field={`project.${project.id}.description`}>
-                  {project.description}
-                </p>
-                <div class="project-footer">
-                  <a href={project.url} class="project-link editable-text" contenteditable="false" data-field={`project.${project.id}.url`}>
-                    View Project →
-                  </a>
-                  {isOwner && (
-                    <button class="project-delete" data-project-id={project.id}>
-                      🗑️
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-            {isOwner && (
-              <div class="project-card add-project" id="add-project-btn">
-                <div class="add-project-content">
-                  <div class="add-project-icon">+</div>
-                  <span>Add New Project</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+			/* Additional overrides to ensure full width */
+			.content-area main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-        <!-- Recent Posts (if any) -->
-        {profileData.posts.length > 0 && (
-          <section class="profile-section">
-            <h2 class="section-title">Recent Posts</h2>
-            <div class="posts-grid">
-              {profileData.posts.slice(0, 6).map((post) => (
-                <article class="post-card">
-                  <h3><a href={`/u/${slug}/${post.slug}`}>{post.title}</a></h3>
-                  {post.description && <p class="post-description">{post.description}</p>}
-                  {post.publishedAt && (
-                    <time class="post-date">
-                      {new Date(post.publishedAt).toLocaleDateString()}
-                    </time>
-                  )}
-                </article>
-              ))}
-            </div>
-            {profileData.posts.length > 6 && (
-              <a href={`/u/${slug}/posts`} class="view-all-posts">View all posts →</a>
-            )}
-          </section>
-        )}
+			main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-        {isOwner && (
-          <div class="debug-info">
-            <strong>Debug:</strong> isOwner={isOwner}, slug={slug}
-          </div>
-        )}
-      </main>
+			.editor-container {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				position: relative;
+				overflow: visible;
+			}
+		</style>
 
-    </CardLayout>
+		<!-- ============================================ -->
+		<!-- INITIALIZE EDIT MODE FROM GLOBAL TOGGLE -->
+		<!-- ============================================ -->
+		<script type="module">
+			console.log('🚨 Profile page script starting to load...');
+			let isEditMode = false;
 
-    <!-- Global Edit Toggle (outside the card) -->
-    <GlobalEditToggle isOwner={isOwner} />
-    <script is:inline define:vars={{ slug, isOwner }}>
-      // Listen for global edit mode changes
-      if (isOwner) {
-        window.addEventListener('editModeChanged', function(event) {
-          const { isEditMode } = event.detail;
+			// Get page configuration from data attributes
+			function getPageConfig() {
+				const bodyElement = document.body;
+				return {
+					isOwner: bodyElement.dataset.isOwner === 'true',
+					slug: bodyElement.dataset.slug
+				};
+			}
 
-          // Update add project button visibility based on edit mode
-          const addProjectBtn = document.getElementById('add-project-btn');
-          if (addProjectBtn) {
-            addProjectBtn.style.display = isEditMode ? 'flex' : 'none';
-          }
+			// Initialize when page loads
+			document.addEventListener('DOMContentLoaded', function() {
+				console.log('🌟 Profile page DOM loaded, starting initialization...');
+				const config = getPageConfig();
+				console.log('⚙️ Page config:', config);
+				console.log('🔧 Profile page loaded, setting up edit mode integration...');
 
-          // Update add social button visibility based on edit mode
-          const addSocialBtn = document.getElementById('add-social-btn');
-          if (addSocialBtn) {
-            addSocialBtn.style.display = isEditMode ? 'flex' : 'none';
-          }
-        });
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					isEditMode = e.detail.isEditMode;
 
-        // Add project functionality
-        document.getElementById('add-project-btn')?.addEventListener('click', function() {
-          addNewProject();
-        });
+					// Get the enhanced editor instance
+					const editorInstance = window[`profile-editorEditor`];
+					if (editorInstance && editorInstance.getEditor()) {
+						const shouldBeEditable = config.isOwner && isEditMode;
+						editorInstance.setEditable(shouldBeEditable);
+					}
+				});
 
-        function addNewProject() {
-          const projectsGrid = document.getElementById('projects-grid');
-          const addButton = document.getElementById('add-project-btn');
+				// Set initial edit mode based on saved state
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode && config.isOwner) {
+					isEditMode = true;
+					// Trigger the event to update editor
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
 
-          const newProject = document.createElement('div');
-          newProject.className = 'project-card';
-          newProject.innerHTML = `
-            <div class="project-header">
-              <h3 class="project-title editable-text" contenteditable="false" data-field="project.new.title">
-                New Project
-              </h3>
-              <span class="project-status status-in-development">In Development</span>
-            </div>
-            <p class="project-description editable-text" contenteditable="false" data-field="project.new.description">
-              Describe your project here...
-            </p>
-            <div class="project-footer">
-              <a href="#" class="project-link editable-text" contenteditable="false" data-field="project.new.url">
-                https://github.com/username/project
-              </a>
-              <button class="project-delete" onclick="this.parentElement.parentElement.remove()">
-                🗑️
-              </button>
-            </div>
-          `;
-
-          projectsGrid.insertBefore(newProject, addButton);
-
-          // Enable editing on the new elements if in edit mode
-          if (document.body.classList.contains('global-edit-mode')) {
-            newProject.querySelectorAll('.editable-text').forEach(element => {
-              element.contentEditable = true;
-              element.classList.add('editing-active');
-            });
-          }
-        }
-      }
-    </script>
-  </body>
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+			});
+		</script>
+	</body>
 </html>
-
-<style>
-  main {
-    display: flex;
-    flex-direction: column;
-    gap: 2rem;
-    max-width: none;
-  }
-
-  /* Profile Header */
-  .profile-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .profile-info {
-    display: flex;
-    gap: 1.5rem;
-    flex: 1;
-  }
-
-  .profile-avatar {
-    flex-shrink: 0;
-  }
-
-  .profile-avatar img {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 3px solid hsl(0 0% 100% / 0.1);
-  }
-
-  .profile-details {
-    flex: 1;
-  }
-
-  .profile-meta {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .meta-item {
-    color: hsl(0 0% 100% / 0.7);
-    font-size: 0.9rem;
-    text-decoration: none;
-  }
-
-  .meta-item.link:hover {
-    color: hsl(235 100% 70%);
-  }
-
-  /* Edit Controls */
-  .edit-controls {
-    flex-shrink: 0;
-  }
-
-  .edit-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: hsl(235 100% 60%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-
-  .edit-btn:hover:not(:disabled) {
-    background: hsl(235 100% 65%);
-    transform: translateY(-2px);
-  }
-
-  .edit-btn:disabled {
-    opacity: 0.7;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* Sections */
-  .profile-section {
-    margin-bottom: 3rem;
-  }
-
-  .section-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 1.5rem;
-    color: hsl(0 0% 100% / 0.95);
-  }
-
-  /* Social Links */
-  .social-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-
-  .social-card {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1rem;
-    background: hsl(0 0% 100% / 0.03);
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    border-radius: 12px;
-    text-decoration: none;
-    color: inherit;
-    transition: all 0.2s ease;
-  }
-
-  .social-card:hover:not(.add-social) {
-    background: hsl(0 0% 100% / 0.05);
-    border-color: hsl(0 0% 100% / 0.15);
-    transform: translateY(-2px);
-  }
-
-  .social-card.add-social {
-    background: hsl(0 0% 100% / 0.05);
-    border: 2px dashed hsl(0 0% 100% / 0.2);
-    cursor: pointer;
-    justify-content: center;
-  }
-
-  .social-card.add-social:hover {
-    border-color: hsl(235 100% 60%);
-    background: hsl(235 100% 60% / 0.05);
-  }
-
-  .social-icon {
-    font-size: 1.5rem;
-    width: 2rem;
-    text-align: center;
-  }
-
-  .social-label {
-    font-weight: 500;
-    color: hsl(0 0% 100% / 0.9);
-  }
-
-  .social-url {
-    font-size: 0.875rem;
-    color: hsl(0 0% 100% / 0.7);
-    flex: 1;
-  }
-
-  /* Projects */
-  .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-
-  .project-card {
-    background: hsl(0 0% 100% / 0.03);
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
-    transition: all 0.2s ease;
-  }
-
-  .project-card:hover:not(.add-project) {
-    background: hsl(0 0% 100% / 0.05);
-    border-color: hsl(0 0% 100% / 0.15);
-    transform: translateY(-2px);
-  }
-
-  .project-card.add-project {
-    background: hsl(0 0% 100% / 0.05);
-    border: 2px dashed hsl(0 0% 100% / 0.2);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 150px;
-  }
-
-  .project-card.add-project:hover {
-    border-color: hsl(235 100% 60%);
-    background: hsl(235 100% 60% / 0.05);
-  }
-
-  .add-project-content {
-    text-align: center;
-    color: hsl(0 0% 100% / 0.7);
-  }
-
-  .add-project-icon {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .project-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1rem;
-  }
-
-  .project-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 0;
-    color: hsl(0 0% 100% / 0.95);
-  }
-
-  .project-status {
-    padding: 0.25rem 0.75rem;
-    border-radius: 16px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-  }
-
-  .status-live {
-    background: hsl(120 100% 25%);
-    color: hsl(120 100% 80%);
-  }
-
-  .status-in-development {
-    background: hsl(45 100% 25%);
-    color: hsl(45 100% 80%);
-  }
-
-  .project-description {
-    color: hsl(0 0% 100% / 0.8);
-    line-height: 1.6;
-    margin-bottom: 1rem;
-  }
-
-  .project-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .project-link {
-    color: hsl(235 100% 70%);
-    text-decoration: none;
-    font-weight: 500;
-  }
-
-  .project-link:hover {
-    text-decoration: underline;
-  }
-
-  .project-delete {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
-  }
-
-  .project-delete:hover {
-    opacity: 1;
-  }
-
-  /* Global Edit Mode States */
-  .global-edit-mode .editable-text {
-    background: hsl(235 100% 60% / 0.1);
-    border: 2px dashed hsl(235 100% 60% / 0.3);
-    border-radius: 8px;
-    padding: 0.25rem 0.5rem;
-    margin: -0.25rem -0.5rem;
-    transition: all 0.2s ease;
-    cursor: text;
-    position: relative;
-  }
-
-  .global-edit-mode .editable-text:hover {
-    background: hsl(235 100% 60% / 0.15);
-    border-color: hsl(235 100% 60% / 0.5);
-  }
-
-  .global-edit-mode .editable-text:focus {
-    outline: none;
-    background: hsl(235 100% 60% / 0.2);
-    border-color: hsl(235 100% 60%);
-  }
-
-  .global-edit-mode .editable-text:before {
-    content: '✏️';
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    font-size: 12px;
-    background: hsl(235 100% 60%);
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    pointer-events: none;
-    z-index: 10;
-  }
-
-  .global-edit-mode .editable-text:hover:before {
-    opacity: 1;
-  }
-
-  /* Hide add buttons by default, show in edit mode */
-  .add-project, .add-social {
-    display: none;
-  }
-
-  .global-edit-mode .add-project,
-  .global-edit-mode .add-social {
-    display: flex;
-  }
-
-  .edit-instructions {
-    margin-top: 1rem;
-    padding: 1rem;
-    background: hsl(235 100% 60% / 0.1);
-    border: 1px solid hsl(235 100% 60% / 0.3);
-    border-radius: 8px;
-    color: hsl(235 100% 80%);
-    font-style: italic;
-  }
-
-  .save-message {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    border-radius: 8px;
-    font-weight: 500;
-  }
-
-  .save-message.success {
-    background: hsl(120 100% 25%);
-    color: hsl(120 100% 80%);
-  }
-
-  .save-message.error {
-    background: hsl(0 100% 25%);
-    color: hsl(0 100% 80%);
-  }
-
-  /* Debug */
-  .debug-info {
-    margin-top: 2rem;
-    padding: 1rem;
-    background: hsl(0 0% 100% / 0.03);
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    border-radius: 8px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.9rem;
-    color: hsl(0 0% 100% / 0.7);
-  }
-
-  /* Posts */
-  .posts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .post-card {
-    background: hsl(0 0% 100% / 0.03);
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    border-radius: 12px;
-    padding: 1.5rem;
-    transition: all 0.2s ease;
-  }
-
-  .post-card:hover {
-    background: hsl(0 0% 100% / 0.05);
-    border-color: hsl(0 0% 100% / 0.15);
-    transform: translateY(-2px);
-  }
-
-  .post-card h3 {
-    margin-bottom: 0.75rem;
-    font-size: 1.1rem;
-  }
-
-  .post-card h3 a {
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .post-card h3 a:hover {
-    color: hsl(235 100% 70%);
-  }
-
-  .post-description {
-    opacity: 0.8;
-    line-height: 1.5;
-    margin-bottom: 1rem;
-  }
-
-  .post-date {
-    font-size: 0.9rem;
-    opacity: 0.6;
-  }
-
-  .view-all-posts {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: hsl(0 0% 100% / 0.05);
-    border: 1px solid hsl(0 0% 100% / 0.15);
-    border-radius: 8px;
-    color: inherit;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .view-all-posts:hover {
-    background: hsl(0 0% 100% / 0.08);
-    border-color: hsl(0 0% 100% / 0.25);
-    transform: translateX(4px);
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .profile-header {
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .profile-info {
-      flex-direction: column;
-      text-align: center;
-    }
-
-    .social-grid,
-    .projects-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .posts-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .post-card {
-      padding: 1rem;
-    }
-  }
-</style>

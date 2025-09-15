@@ -8,12 +8,14 @@ interface ConvexProviderWrapperProps {
   slug: string;
   editorId: string;
   isOwner: boolean;
+  pageKey?: string;
+  pageTitle?: string;
 }
 
-export default function ConvexProviderWrapper({ slug, editorId, isOwner }: ConvexProviderWrapperProps) {
+export default function ConvexProviderWrapper({ slug, editorId, isOwner, pageKey, pageTitle }: ConvexProviderWrapperProps) {
   return (
     <ConvexProvider client={convex}>
-      <ConvexDataManager slug={slug} editorId={editorId} isOwner={isOwner} />
+      <ConvexDataManager slug={slug} editorId={editorId} isOwner={isOwner} pageKey={pageKey} pageTitle={pageTitle} />
     </ConvexProvider>
   );
 }

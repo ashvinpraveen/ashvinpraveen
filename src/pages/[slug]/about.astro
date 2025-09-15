@@ -49,6 +49,7 @@ const pageDescription = `Learn more about ${slug}`;
 					showUploadModal={true}
 					isOwner={isOwner}
 					slug={slug}
+					pageKey="about"
 					class="editor-container"
 				/>
 			</main>
@@ -56,7 +57,7 @@ const pageDescription = `Learn more about ${slug}`;
 		<GlobalEditToggle isOwner={isOwner} />
 
 		<!-- Convex Provider Wrapper for Real-time Streaming -->
-		<ConvexProviderWrapper slug={slug} editorId="editor" isOwner={isOwner} client:load />
+		<ConvexProviderWrapper key="about-page" slug={slug} editorId="editor" isOwner={isOwner} pageKey="about" pageTitle="About" client:load />
 
 		<!-- ============================================ -->
 		<!-- MINIMAL STYLES FOR EDITOR CONTAINER -->

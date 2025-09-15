@@ -10,6 +10,7 @@ export interface Props {
 	class?: string;
 	isOwner?: boolean;
 	slug?: string;
+	pageKey?: string;
 	onSave?: (content: string) => void;
 }
 
@@ -24,6 +25,7 @@ const {
 	class: className = '',
 	isOwner = false,
 	slug = '',
+	pageKey = 'default',
 	onSave
 } = Astro.props;
 ---
@@ -41,6 +43,7 @@ const {
 		data-show-upload-modal={showUploadModal}
 		data-is-owner={isOwner}
 		data-slug={slug}
+		data-page-key={pageKey}
 	></div>
 
 	{showBubbleMenu && (
@@ -606,7 +609,8 @@ const {
 			showContextMenu: editorElement.dataset.showContextMenu === 'true',
 			showUploadModal: editorElement.dataset.showUploadModal === 'true',
 			isOwner: editorElement.dataset.isOwner === 'true',
-			slug: editorElement.dataset.slug
+			slug: editorElement.dataset.slug,
+			pageKey: editorElement.dataset.pageKey
 		};
 	}
 
@@ -617,10 +621,10 @@ const {
 
 	function handleContentChange(content) {
 		const config = getEditorConfig();
-		if (!config || !config.slug) return;
+		if (!config || !config.slug || !config.pageKey) return;
 
 		// Save immediately to localStorage for instant feedback
-		const storageKey = `about-content-${config.slug}`;
+		const storageKey = `${config.pageKey}-content-${config.slug}`;
 		localStorage.setItem(storageKey, content);
 
 		// Debounced save to Convex (wait 2 seconds after user stops typing)
@@ -667,8 +671,8 @@ const {
 		if (!config) return '<p>Loading...</p>';
 
 		// Try to load content from localStorage or API
-		if (typeof window !== 'undefined' && config.slug) {
-			const storageKey = `about-content-${config.slug}`;
+		if (typeof window !== 'undefined' && config.slug && config.pageKey) {
+			const storageKey = `${config.pageKey}-content-${config.slug}`;
 			const savedContent = localStorage.getItem(storageKey);
 			if (savedContent) {
 				return savedContent;
