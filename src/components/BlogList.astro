@@ -1,0 +1,348 @@
+---
+interface Props {
+	slug: string;
+	isOwner: boolean;
+}
+
+const { slug, isOwner } = Astro.props;
+---
+
+<!-- Blog Posts List -->
+<div class="posts-container">
+	<div class="posts-grid" id="posts-grid">
+		<!-- Posts will be loaded via JavaScript -->
+	</div>
+
+	<div class="empty-state" id="empty-state" style="display: none;">
+		<p>Ready to share your thoughts?</p>
+		<button class="empty-new-post-btn" id="empty-new-post-btn">
+			<i data-lucide="plus"></i>
+			Write your first post
+		</button>
+	</div>
+</div>
+
+<style is:global>
+	/* Blog Posts - Global styles for dynamically generated content */
+	.posts-container {
+		position: relative;
+	}
+
+	.posts-grid {
+		display: grid;
+		gap: 1.5rem;
+		grid-template-columns: 1fr;
+	}
+
+	.post-card {
+		background: hsl(0 0% 100% / 0.02);
+		border: 1px solid hsl(0 0% 100% / 0.15);
+		border-radius: 12px;
+		padding: 1rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		position: relative;
+	}
+
+	.post-card:hover {
+		border-color: hsl(0 0% 100% / 0.4);
+		background: hsl(0 0% 100% / 0.04);
+	}
+
+	.post-content {
+		margin-bottom: 1.5rem;
+	}
+
+	.post-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		color: hsl(0 0% 100% / 0.95);
+		margin-bottom: 0.75rem;
+		line-height: 1.3;
+		margin: 0 0 0.75rem 0;
+	}
+
+	.post-preview {
+		color: hsl(0 0% 100% / 0.75);
+		line-height: 1.6;
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 4;
+		white-space: pre-line;
+	}
+
+	.post-meta {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.post-date {
+		color: hsl(0 0% 100% / 0.5);
+		font-size: 0.875rem;
+	}
+
+	/* Empty State */
+	.empty-state {
+		text-align: center;
+		padding: 3rem 2rem;
+		color: hsl(0 0% 100% / 0.6);
+	}
+
+	.empty-state p {
+		margin-bottom: 1.5rem;
+		font-size: 1.1rem;
+	}
+
+	.empty-new-post-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: hsl(235 100% 60%);
+		color: white;
+		border: none;
+		padding: 0.875rem 1.75rem;
+		border-radius: 8px;
+		font-size: 0.875rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+
+	.empty-new-post-btn:hover {
+		background: hsl(235 100% 55%);
+	}
+
+	.empty-new-post-btn i {
+		width: 16px;
+		height: 16px;
+	}
+
+	/* Responsive */
+	@media (max-width: 768px) {
+		.posts-grid {
+			gap: 1rem;
+		}
+
+		.post-card {
+			padding: 1.5rem;
+		}
+	}
+</style>
+
+<script type="module" is:inline define:vars={{ slug, isOwner }}>
+	// Generate unique ID for new posts
+	function generateUniqueId() {
+		return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+	}
+
+	// Create new post handler
+	function handleNewPost() {
+		if (!isOwner) return;
+
+		const postId = generateUniqueId();
+		// Navigate to the new post editor
+		window.location.href = `/${slug}/blog/${postId}`;
+	}
+
+	// Load and display blog posts
+	async function loadPosts() {
+		if (!slug) return;
+
+		try {
+			// We'll load posts from localStorage first (since they're saved there)
+			const posts = [];
+
+			console.log('Loading posts for slug:', slug);
+			console.log('LocalStorage keys:', Object.keys(localStorage));
+
+			// Check localStorage for saved blog posts
+			for (let i = 0; i < localStorage.length; i++) {
+				const key = localStorage.key(i);
+				if (key && key.startsWith(`blog-post-`) && key.includes(`-content-${slug}`)) {
+					const content = localStorage.getItem(key);
+					if (content) {
+						// Extract post ID from key
+						const postId = key.split('-content-')[0].replace('blog-post-', '');
+
+						// Get first line as title
+						const tempDiv = document.createElement('div');
+						tempDiv.innerHTML = content;
+						const text = tempDiv.textContent || tempDiv.innerText || '';
+						const firstLine = text.split('\n')[0] || 'Untitled Post';
+						const title = firstLine.replace(/^#+\s*/, ''); // Remove markdown headers
+
+						// Get text but preserve some line breaks
+						let previewText = text.substring(0, 200);
+						if (text.length > 200) previewText += '...';
+
+						posts.push({
+							id: postId,
+							title: title.substring(0, 50) + (title.length > 50 ? '...' : ''),
+							content: content,
+							preview: previewText,
+							updatedAt: new Date().toISOString() // We don't have real timestamp from localStorage
+						});
+
+						console.log('Found post:', { postId, title, preview: previewText.substring(0, 50) });
+					}
+				}
+			}
+
+			console.log('Total posts found:', posts.length);
+			displayPosts(posts);
+		} catch (error) {
+			console.error('Error loading posts:', error);
+			displayPosts([]);
+		}
+	}
+
+	// Display posts in the UI
+	function displayPosts(posts) {
+		console.log('displayPosts called with:', posts);
+		const postsGrid = document.getElementById('posts-grid');
+		const emptyState = document.getElementById('empty-state');
+
+		if (!postsGrid || !emptyState) {
+			console.log('Missing elements - postsGrid:', postsGrid, 'emptyState:', emptyState);
+			return;
+		}
+
+		if (posts.length === 0) {
+			postsGrid.innerHTML = '';
+			emptyState.style.display = isOwner ? 'block' : 'none';
+			if (!isOwner) {
+				postsGrid.innerHTML = '<div class="empty-state"><p>No posts yet.</p></div>';
+			}
+			return;
+		}
+
+		emptyState.style.display = 'none';
+
+		postsGrid.innerHTML = posts.map(post => `
+			<article class="post-card" data-post-id="${post.id}" ${isOwner ? 'oncontextmenu="return showContextMenu(event, \'' + post.id + '\')"' : ''}>
+				<div class="post-content">
+					<h3 class="post-title">${post.title}</h3>
+					<div class="post-preview">${post.preview}</div>
+				</div>
+				<div class="post-meta">
+					<time class="post-date">${new Date(post.updatedAt).toLocaleDateString('en-US', {
+						month: 'short',
+						day: 'numeric',
+						year: 'numeric'
+					})}</time>
+				</div>
+			</article>
+		`).join('');
+
+		// Add context menu if not exists
+		if (!document.getElementById('context-menu')) {
+			const contextMenu = document.createElement('div');
+			contextMenu.id = 'context-menu';
+			contextMenu.className = 'context-menu';
+			contextMenu.innerHTML = `
+				<button class="context-menu-item" onclick="deletePost()">
+					<i data-lucide="trash-2"></i>
+					Delete Post
+				</button>
+			`;
+			contextMenu.style.cssText = `
+				position: fixed;
+				background: hsl(0 0% 0% / 0.95);
+				backdrop-filter: blur(20px);
+				border: 1px solid hsl(0 0% 100% / 0.15);
+				border-radius: 8px;
+				padding: 0.5rem;
+				z-index: 1000;
+				display: none;
+			`;
+			document.body.appendChild(contextMenu);
+		}
+
+		// Add event listeners to new post cards
+		setupPostEventListeners();
+
+		// Reinitialize Lucide icons
+		if (typeof lucide !== 'undefined') {
+			lucide.createIcons();
+		}
+	}
+
+	// Setup event listeners for post cards
+	function setupPostEventListeners() {
+		// Post card click handlers - navigate to post when clicked
+		document.querySelectorAll('.post-card').forEach(card => {
+			card.addEventListener('click', () => {
+				const postId = card.dataset.postId;
+				window.location.href = `/${slug}/blog/${postId}`;
+			});
+		});
+	}
+
+	// Context menu variables
+	let currentPostId = null;
+
+	// Show context menu
+	window.showContextMenu = function(event, postId) {
+		event.preventDefault();
+		currentPostId = postId;
+
+		const contextMenu = document.getElementById('context-menu');
+		if (contextMenu) {
+			contextMenu.style.display = 'block';
+			contextMenu.style.left = event.pageX + 'px';
+			contextMenu.style.top = event.pageY + 'px';
+		}
+		return false;
+	};
+
+	// Delete post function
+	window.deletePost = function() {
+		if (!currentPostId || !isOwner) return;
+
+		if (confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+			// Remove from localStorage
+			const key = `blog-post-${currentPostId}-content-${slug}`;
+			localStorage.removeItem(key);
+
+			// Hide context menu
+			const contextMenu = document.getElementById('context-menu');
+			if (contextMenu) {
+				contextMenu.style.display = 'none';
+			}
+
+			// Reload posts
+			loadPosts();
+		}
+	};
+
+	// Hide context menu when clicking elsewhere
+	document.addEventListener('click', () => {
+		const contextMenu = document.getElementById('context-menu');
+		if (contextMenu) {
+			contextMenu.style.display = 'none';
+		}
+	});
+
+
+	// Event listeners
+	document.addEventListener('DOMContentLoaded', function() {
+		// New post buttons
+		document.getElementById('empty-new-post-btn')?.addEventListener('click', handleNewPost);
+
+		// Load existing posts
+		loadPosts();
+
+		// Initialize Lucide icons
+		if (typeof lucide !== 'undefined') {
+			lucide.createIcons();
+		}
+	});
+
+	// Export functions to global scope for the main blog page
+	window.blogListHandlers = {
+		loadPosts,
+		handleNewPost
+	};
+</script>

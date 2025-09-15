@@ -35,15 +35,16 @@ export default defineSchema({
 
   posts: defineTable({
     siteId: v.id('sites'),
+    uniqueId: v.string(), // Auto-generated unique identifier (like notion page IDs)
     title: v.string(),
-    slug: v.string(),
-    content: v.string(), // markdown
+    slug: v.string(), // Auto-generated from content + uniqueId
+    content: v.string(), // HTML content from TipTap
     description: v.optional(v.string()),
     published: v.boolean(),
     publishedAt: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index('by_site_slug', ['siteId', 'slug']).index('by_site', ['siteId']),
+  }).index('by_site_slug', ['siteId', 'slug']).index('by_site', ['siteId']).index('by_site_unique_id', ['siteId', 'uniqueId']),
   
   pages: defineTable({
     siteId: v.id('sites'),

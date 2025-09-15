@@ -1,245 +1,209 @@
 ---
 import BaseHead from '../../components/BaseHead.astro';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../convex/_generated/api';
 import CardLayout from '../../components/CardLayout.astro';
 import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
+import BlogList from '../../components/BlogList.astro';
+import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
 const { slug } = Astro.params;
-let siteSettings: any = null;
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  siteSettings = await client.query(api.sites.getSettings, { slug });
-} catch {}
 const user = await Astro.locals.currentUser();
 
-// For now, we'll check if the slug matches the current user
-// In the future, this could query a database for public profiles
+// Check if user is the owner of this blog
 let isOwner = false;
 if (user) {
   const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
   isOwner = userSlug.toLowerCase() === slug?.toLowerCase();
 }
 
-// For demo purposes, we'll show the page if it's the owner or if it's a known slug
 const pageTitle = `${slug}'s Blog`;
 const pageDescription = `Blog posts by ${slug}`;
+
+// Default content for blog header
+const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts and notes to self</p>';
 ---
 
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={siteSettings?.seoTitle || pageTitle} description={siteSettings?.seoDescription || pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
-		<script src="https://unpkg.com/@tiptap/core@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/pm@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/starter-kit@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/extension-placeholder@2.1.16/dist/index.umd.min.js"></script>
-		<script src="https://unpkg.com/@tiptap/extension-link@2.1.16/dist/index.umd.min.js"></script>
+		<BaseHead title={pageTitle} description={pageDescription} />
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
-	<body>
+	<body data-is-owner={isOwner} data-slug={slug}>
 		<CardLayout>
 			<main>
-				<div class="page-header">
-					<h1 class="page-title editable-text" contenteditable="false" data-field="blog-title" id="page-title">
-						{slug}'s Blog
-					</h1>
+				<!-- Editable Blog Header -->
+				<div class="blog-header-container">
+					<EnhancedTipTapEditor
+						id="blog-header-editor"
+						placeholder={isOwner ? 'Write your blog header...' : 'No blog header yet.'}
+						content={defaultBlogHeader}
+						editable={false}
+						showBubbleMenu={true}
+						showContextMenu={true}
+						showUploadModal={false}
+						isOwner={isOwner}
+						slug={slug}
+						pageKey="blog-header"
+						class="blog-header-editor"
+					/>
 				</div>
 
-				<div class="editor-container">
-					<div id="editor" class="tiptap-editor"></div>
-				</div>
+				<!-- Blog Posts List -->
+				<BlogList slug={slug} isOwner={isOwner} />
+
+		<!-- Floating New Post Button -->
+		{isOwner && (
+			<button class="floating-new-post-btn" id="new-post-btn">
+				<i data-lucide="plus"></i>
+			</button>
+		)}
 			</main>
 		</CardLayout>
+
 		<GlobalEditToggle isOwner={isOwner} />
 
+		<!-- Convex Provider Wrapper for Blog Header -->
+		<ConvexProviderWrapper
+			key="blog-header"
+			slug={slug}
+			editorId="blog-header-editor"
+			isOwner={isOwner}
+			pageKey="blog-header"
+			pageTitle="Blog Header"
+			client:load
+		/>
+
 		<style>
-			main {
-				max-width: none;
-				padding: 2rem;
+			/* Remove main container padding since TipTap has its own */
+			:global(.content-area) main {
+				padding: 0 !important;
 			}
 
-			.page-header {
+			.content-area main {
+				padding: 0 !important;
+			}
+
+			main {
+				padding: 0 !important;
+			}
+
+			/* Blog Header Container - remove min-height from TipTap */
+			.blog-header-container {
+				margin-bottom: 0;
+			}
+
+			.blog-header-editor {
+				width: 100%;
+			}
+
+			/* Override TipTap min-height for header */
+			:global(.blog-header-editor .ProseMirror) {
+				min-height: auto !important;
+				padding-bottom: 1rem !important;
+			}
+
+			/* Add padding to blog list container */
+			:global(.posts-container) {
+				padding: 0 3rem 3rem 3rem;
+			}
+
+			/* Floating New Post Button */
+			.floating-new-post-btn {
+				position: fixed;
+				bottom: 2rem;
+				right: 2rem;
+				width: 56px;
+				height: 56px;
+				background: hsl(0 0% 100% / 0.05);
+				backdrop-filter: blur(20px);
+				border: 1px solid hsl(0 0% 100% / 0.15);
+				border-radius: 50%;
+				color: hsl(0 0% 100% / 0.8);
+				cursor: pointer;
+				transition: all 0.2s ease;
 				display: flex;
 				align-items: center;
-				justify-content: space-between;
-				margin-bottom: 2rem;
-				padding-bottom: 1rem;
-				border-bottom: 1px solid hsl(0 0% 100% / 0.1);
+				justify-content: center;
+				z-index: 1000;
 			}
 
-			.page-title {
-				margin: 0;
-				font-size: 2rem;
-				font-weight: 700;
-				color: hsl(0 0% 100% / 0.97);
-				outline: none;
-				border-radius: 4px;
-				padding: 0.25rem 0.5rem;
-				transition: background 0.2s ease;
-			}
-
-			.page-title.editing-active {
-				background: hsl(0 0% 100% / 0.05);
-				border: 1px solid hsl(0 0% 100% / 0.2);
-			}
-
-
-			.editor-container {
-				max-width: 65ch;
-				margin: 0 auto;
-			}
-
-			.tiptap-editor {
-				min-height: 500px;
-				outline: none;
-				color: hsl(0 0% 100% / 0.92);
-				line-height: 1.6;
-			}
-
-			.tiptap-editor p {
-				margin-bottom: 1rem;
-			}
-
-			.tiptap-editor h1,
-			.tiptap-editor h2,
-			.tiptap-editor h3 {
-				color: hsl(0 0% 100% / 0.97);
-				margin: 1.5rem 0 1rem 0;
-				font-weight: 600;
-			}
-
-			.tiptap-editor h1 {
-				font-size: 1.875rem;
-			}
-
-			.tiptap-editor h2 {
-				font-size: 1.5rem;
-			}
-
-			.tiptap-editor h3 {
-				font-size: 1.25rem;
-			}
-
-			.tiptap-editor ul,
-			.tiptap-editor ol {
-				padding-left: 1.5rem;
-				margin-bottom: 1rem;
-			}
-
-			.tiptap-editor li {
-				margin-bottom: 0.25rem;
-			}
-
-			.tiptap-editor blockquote {
-				border-left: 3px solid hsl(0 0% 100% / 0.3);
-				padding-left: 1rem;
-				margin: 1rem 0;
-				color: hsl(0 0% 100% / 0.8);
-				font-style: italic;
-			}
-
-			.tiptap-editor code {
+			.floating-new-post-btn:hover {
 				background: hsl(0 0% 100% / 0.1);
-				padding: 0.125rem 0.25rem;
-				border-radius: 4px;
-				font-family: 'JetBrains Mono', monospace;
-				font-size: 0.875rem;
+				color: hsl(0 0% 100% / 0.95);
 			}
 
-			.tiptap-editor pre {
-				background: hsl(0 0% 100% / 0.05);
-				padding: 1rem;
-				border-radius: 8px;
-				overflow-x: auto;
-				margin: 1rem 0;
+			.floating-new-post-btn i {
+				width: 20px;
+				height: 20px;
 			}
 
-			.tiptap-editor pre code {
-				background: none;
-				padding: 0;
-			}
+			/* Responsive */
+			@media (max-width: 768px) {
+				/* Blog list responsive padding */
+				:global(.posts-container) {
+					padding: 0 2rem 2rem 2rem;
+				}
 
-			/* Placeholder styles */
-			.tiptap-editor p.is-editor-empty:first-child::before {
-				color: hsl(0 0% 100% / 0.4);
-				content: attr(data-placeholder);
-				float: left;
-				height: 0;
-				pointer-events: none;
+				.floating-new-post-btn {
+					bottom: 1.5rem;
+					right: 1.5rem;
+					width: 50px;
+					height: 50px;
+				}
 			}
 		</style>
 
-		<script define:vars={{ isOwner, slug }}>
-			let editor = null;
-			let isEditMode = false;
+		<script type="module" is:inline>
+			// Initialize Lucide icons
+			if (typeof lucide !== 'undefined') {
+				lucide.createIcons();
+			}
 
-			// Initialize editor when page loads
+			// Get data from body attributes
+			const isOwner = document.body.dataset.isOwner === 'true';
+			const slug = document.body.dataset.slug;
+
+			// Generate unique ID for new posts
+			function generateUniqueId() {
+				return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			}
+
+			// Create new post handler for floating button
+			function handleNewPost() {
+				if (!isOwner) return;
+				const postId = generateUniqueId();
+				window.location.href = `/${slug}/blog/${postId}`;
+			}
+
+			// Event listeners
 			document.addEventListener('DOMContentLoaded', function() {
-				if (typeof window.TiptapCore !== 'undefined') {
-					initializeEditor();
-				} else {
-					// Wait a bit more for scripts to load
-					setTimeout(initializeEditor, 500);
-				}
+				// New post button (floating)
+				document.getElementById('new-post-btn')?.addEventListener('click', handleNewPost);
 
-				// Listen for global edit mode changes
+				// Listen for global edit mode changes for blog header
 				window.addEventListener('editModeChanged', function(e) {
-					isEditMode = e.detail.isEditMode;
-					if (editor) {
-						editor.setEditable(isOwner && isEditMode);
+					const editMode = e.detail.isEditMode;
+					const editorInstance = window[`blog-header-editorEditor`];
+					if (editorInstance && editorInstance.getEditor()) {
+						editorInstance.setEditable(isOwner && editMode);
 					}
 				});
-			});
 
-			function initializeEditor() {
-				try {
-					editor = new window.TiptapCore.Editor({
-						element: document.querySelector('#editor'),
-						extensions: [
-							window.TiptapStarterKit.default,
-							window.TiptapExtensionPlaceholder.default.configure({
-								placeholder: isOwner ? 'Start writing your blog posts...' : 'No content yet.',
-							}),
-							window.TiptapExtensionLink.default.configure({
-								openOnClick: false,
-							}),
-						],
-						content: getInitialContent(),
-						editable: false,
-						editorProps: {
-							attributes: {
-								class: 'tiptap-editor',
-							},
-						},
-					});
-
-					// Set initial edit mode based on saved state
-					const savedMode = localStorage.getItem('editMode') === 'true';
-					if (savedMode && isOwner) {
-						isEditMode = true;
-						editor.setEditable(true);
-					}
-				} catch (error) {
-					console.error('Failed to initialize editor:', error);
-					// Fallback: show a simple textarea
-					document.querySelector('#editor').innerHTML = `
-						<div style="color: hsl(0 0% 100% / 0.6); text-align: center; padding: 2rem;">
-							${isOwner ? 'Start writing your blog posts...' : 'No content yet.'}
-						</div>
-					`;
+				// Set initial edit mode based on saved state for blog header
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode && isOwner) {
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
 				}
-			}
 
-			function getInitialContent() {
-				// In a real app, this would load from a database
-				return `
-					<h2>Welcome to ${slug}'s Blog</h2>
-					<p>This is where ${slug} shares thoughts, ideas, and stories.</p>
-					${isOwner ? '<p>Click "Edit" to start writing your first post!</p>' : ''}
-				`;
-			}
-
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+			});
 		</script>
 	</body>
 </html>

@@ -1,0 +1,188 @@
+---
+import BaseHead from '../../../components/BaseHead.astro';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../../convex/_generated/api';
+import CardLayout from '../../../components/CardLayout.astro';
+import GlobalEditToggle from '../../../components/GlobalEditToggle.astro';
+import EnhancedTipTapEditor from '../../../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../../../components/ConvexProviderWrapper.tsx';
+export const prerender = false;
+
+const { slug, postId } = Astro.params;
+let siteSettings: any = null;
+let post: any = null;
+
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  if (slug && postId) {
+    siteSettings = await client.query(api.sites.getSettings, { slug });
+    post = await client.query(api.posts.getByUniqueId, { siteSlug: slug, uniqueId: postId });
+  }
+} catch {}
+
+const user = await Astro.locals.currentUser();
+
+// Check if user is the owner of this blog
+let isOwner = false;
+if (user) {
+  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+  isOwner = userSlug.toLowerCase() === slug?.toLowerCase();
+}
+
+// Default content for new posts
+const initialContent = post?.content || '<h1>Untitled Post</h1><p>Start writing your post...</p>';
+
+const pageTitle = post?.title || 'New Post';
+const pageDescription = post?.description || 'Blog post';
+---
+
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<BaseHead title={pageTitle} description={pageDescription} />
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+	</head>
+	<body data-is-owner={isOwner} data-slug={slug} data-post-id={postId}>
+		<CardLayout>
+			<main>
+				<!-- Back Button -->
+				<div class="back-button-container">
+					<button class="back-btn" id="back-btn">
+						<i data-lucide="arrow-left"></i>
+					</button>
+				</div>
+
+				<!-- Enhanced TipTap Editor (same as about page) -->
+				<EnhancedTipTapEditor
+					id="blog-post-editor"
+					placeholder={isOwner ? 'Start writing your post...' : 'No content yet.'}
+					content={initialContent}
+					editable={false}
+					showBubbleMenu={true}
+					showContextMenu={true}
+					showUploadModal={true}
+					isOwner={isOwner}
+					slug={slug}
+					pageKey={`blog-post-${postId}`}
+					class="editor-container"
+				/>
+			</main>
+		</CardLayout>
+
+		<GlobalEditToggle isOwner={isOwner} />
+
+		<!-- Convex Provider Wrapper for Real-time Streaming -->
+		<ConvexProviderWrapper
+			key={`blog-post-${postId}`}
+			slug={slug}
+			editorId="blog-post-editor"
+			isOwner={isOwner}
+			pageKey={`blog-post-${postId}`}
+			pageTitle={pageTitle}
+			client:load
+		/>
+
+		<style>
+			/* Back Button Styles */
+			.back-button-container {
+				padding: 1rem;
+				margin-bottom: -2rem;
+			}
+
+			.back-btn {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: transparent;
+				border: none;
+				padding: 0.5rem;
+				color: hsl(0 0% 100% / 0.8);
+				cursor: pointer;
+				transition: all 0.2s ease;
+				font-size: 1rem;
+			}
+
+			.back-btn:hover {
+				color: hsl(0 0% 100% / 0.95);
+			}
+
+			.back-btn i {
+				width: 16px;
+				height: 16px;
+			}
+
+			/* Override global main constraints for full-width editor with high specificity */
+			:global(.content-area) main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
+
+			/* Additional overrides to ensure full width */
+			.content-area main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
+
+			main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
+
+			.editor-container {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				position: relative;
+				overflow: visible;
+			}
+		</style>
+
+		<script type="module" is:inline>
+			// Initialize Lucide icons
+			if (typeof lucide !== 'undefined') {
+				lucide.createIcons();
+			}
+
+			// Get page data from body attributes
+			const isOwner = document.body.dataset.isOwner === 'true';
+			const slug = document.body.dataset.slug;
+			const postId = document.body.dataset.postId;
+
+			// Back button handler
+			document.getElementById('back-btn')?.addEventListener('click', () => {
+				window.location.href = `/${slug}/blog`;
+			});
+
+			// Initialize edit mode integration
+			document.addEventListener('DOMContentLoaded', function() {
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					const editMode = e.detail.isEditMode;
+					const editorInstance = window[`blog-post-editorEditor`];
+					if (editorInstance && editorInstance.getEditor()) {
+						editorInstance.setEditable(isOwner && editMode);
+					}
+				});
+
+				// Set initial edit mode based on saved state
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode && isOwner) {
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
+
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+			});
+		</script>
+	</body>
+</html>

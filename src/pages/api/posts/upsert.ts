@@ -12,14 +12,10 @@ export const POST: APIRoute = async (ctx) => {
 
   try {
     const body = await ctx.request.json();
-    const { slug, uniqueId, published, siteSlug } = body ?? {};
+    const { siteSlug, uniqueId, slug, title, content, description, published } = body ?? {};
 
-    if (!siteSlug) {
-      return new Response(JSON.stringify({ error: 'Missing siteSlug' }), { status: 400 });
-    }
-
-    if (published === undefined) {
-      return new Response(JSON.stringify({ error: 'Missing published field' }), { status: 400 });
+    if (!siteSlug || !uniqueId || !slug || !title || !content) {
+      return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400 });
     }
 
     // Get the session token to pass to Convex
@@ -32,22 +28,22 @@ export const POST: APIRoute = async (ctx) => {
     // Set the token for auth in Convex
     client.setAuth(token);
 
-    // Use uniqueId if available, otherwise fall back to slug
-    if (uniqueId) {
-      await client.mutation(api.posts.publishToggleByUniqueId, { siteSlug, uniqueId, published });
-    } else if (slug) {
-      await client.mutation(api.posts.publishToggle, { siteSlug, slug, published });
-    } else {
-      return new Response(JSON.stringify({ error: 'Missing slug or uniqueId' }), { status: 400 });
-    }
+    const postId = await client.mutation(api.posts.upsertByUniqueId, {
+      siteSlug,
+      uniqueId,
+      slug,
+      title,
+      content,
+      description,
+      published: published ?? false
+    });
 
-    return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true, postId }), { status: 200 });
   } catch (err: any) {
-    console.error('Error toggling publish status:', err);
+    console.error('Error upserting post:', err);
     return new Response(
       JSON.stringify({ error: err?.message || 'Unexpected error' }),
       { status: 500 }
     );
   }
 };
-
