@@ -37,12 +37,13 @@ A modern personal website and portfolio built with Astro, featuring user authent
 │   │   └── *.astro               # Other Astro components
 │   ├── pages/                 # File-based routing
 │   │   ├── [slug]/           # Dynamic user profile pages
-│   │   │   └── about.astro   # About page with advanced TipTap editor
+│   │   │   ├── about.astro   # About page with advanced TipTap editor
+│   │   │   └── settings.astro# User Settings (formerly Dashboard)
 │   │   ├── api/              # API endpoints
 │   │   │   ├── images/       # Image upload and serving
 │   │   │   ├── profile/      # Profile management APIs
 │   │   │   └── *.ts          # Other API routes
-│   │   └── app/              # Authenticated app pages
+│   │   └── app/              # Authenticated app entry (redirects to /:slug/settings)
 │   ├── scripts/              # Client-side scripts
 │   └── styles/               # CSS and styling
 │       ├── editable.css      # Rich text editor styles

@@ -1,0 +1,400 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import CardLayout from '../../components/CardLayout.astro';
+import { Icon } from 'astro-icon/components';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
+export const prerender = false;
+
+const { slug } = Astro.params;
+const user = await Astro.locals.currentUser();
+
+if (!user) {
+  return Astro.redirect('/sign-in');
+}
+
+// Determine if this is the owner's dashboard; if not, redirect to their own dashboard
+const authedSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
+if ((slug || '').toLowerCase() !== authedSlug.toLowerCase()) {
+  return Astro.redirect(`/${authedSlug}/settings`);
+}
+
+// Resolve site slug from Convex (source of truth)
+let siteSlug = authedSlug;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+  const site = Array.isArray(sites) && sites[0] || null;
+  if (site) siteSlug = site.slug;
+} catch {}
+
+const siteLink = `/${siteSlug}`;
+---
+
+<html lang="en" data-theme="dark">
+  <head>
+    <BaseHead title="Settings" description="Manage your site settings" />
+  </head>
+  <body>
+    <CardLayout>
+      <main>
+        <div class="dashboard-header">
+          <h1>Settings</h1>
+          <p class="welcome-text">Welcome back, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress?.split('@')[0]}</p>
+        </div>
+
+        <div id="settings" class="settings">
+          <form id="settings-form" method="post" action="/api/settings/update">
+            <input type="hidden" name="slug" value={siteSlug} />
+
+            <!-- Your Site -->
+            <h2 class="section-title">Your Site</h2>
+            <div class="grid">
+              <label>
+                <span>Site Name</span>
+                <input type="text" name="name" placeholder="My Site" />
+              </label>
+              <label>
+                <span>Custom Domain</span>
+                <input type="text" name="customDomain" placeholder="yourdomain.com" />
+              </label>
+            </div>
+
+            <!-- Socials -->
+            <h2 class="section-title">Socials</h2>
+            <div class="socials-grid">
+              <!-- Sorted by typical portfolio popularity: LinkedIn, GitHub, X, Instagram, YouTube, TikTok, Threads, Behance, Medium, Facebook, Pinterest, Twitch, Spotify -->
+              <div class="social-row" data-platform="linkedin">
+                <span class="icon"><Icon name="simple-icons:linkedin" width="18" height="18" /></span>
+                <input type="text" id="social-linkedin" value="https://linkedin.com/in/" />
+              </div>
+              <div class="social-row" data-platform="github">
+                <span class="icon"><Icon name="simple-icons:github" width="18" height="18" /></span>
+                <input type="text" id="social-github" value="https://github.com/" />
+              </div>
+              <div class="social-row" data-platform="x">
+                <span class="icon"><Icon name="simple-icons:x" width="18" height="18" /></span>
+                <input type="text" id="social-x" value="https://x.com/" />
+              </div>
+              <div class="social-row" data-platform="instagram">
+                <span class="icon"><Icon name="simple-icons:instagram" width="18" height="18" /></span>
+                <input type="text" id="social-instagram" value="https://instagram.com/" />
+              </div>
+              <div class="social-row" data-platform="youtube">
+                <span class="icon"><Icon name="simple-icons:youtube" width="18" height="18" /></span>
+                <input type="text" id="social-youtube" value="https://youtube.com/@" />
+              </div>
+              <div class="social-row" data-platform="tiktok">
+                <span class="icon"><Icon name="simple-icons:tiktok" width="18" height="18" /></span>
+                <input type="text" id="social-tiktok" value="https://tiktok.com/@" />
+              </div>
+              <div class="social-row" data-platform="threads">
+                <span class="icon"><Icon name="simple-icons:threads" width="18" height="18" /></span>
+                <input type="text" id="social-threads" value="https://threads.net/" />
+              </div>
+              <div class="social-row" data-platform="behance">
+                <span class="icon"><Icon name="simple-icons:behance" width="18" height="18" /></span>
+                <input type="text" id="social-behance" value="https://behance.net/" />
+              </div>
+              <div class="social-row" data-platform="medium">
+                <span class="icon"><Icon name="simple-icons:medium" width="18" height="18" /></span>
+                <input type="text" id="social-medium" value="https://medium.com/@" />
+              </div>
+              
+              <div class="social-row" data-platform="facebook">
+                <span class="icon"><Icon name="simple-icons:facebook" width="18" height="18" /></span>
+                <input type="text" id="social-facebook" value="https://facebook.com/" />
+              </div>
+              
+              <div class="social-row" data-platform="pinterest">
+                <span class="icon"><Icon name="simple-icons:pinterest" width="18" height="18" /></span>
+                <input type="text" id="social-pinterest" value="https://pinterest.com/" />
+              </div>
+              
+              <div class="social-row" data-platform="twitch">
+                <span class="icon"><Icon name="simple-icons:twitch" width="18" height="18" /></span>
+                <input type="text" id="social-twitch" value="https://twitch.tv/" />
+              </div>
+              <div class="social-row" data-platform="spotify">
+                <span class="icon"><Icon name="simple-icons:spotify" width="18" height="18" /></span>
+                <input type="text" id="social-spotify" value="https://open.spotify.com/user/" />
+              </div>
+              <div class="actions socials-actions">
+                <button type="button" id="save-socials" class="save">Save Socials</button>
+                <span id="socials-status" class="status" aria-live="polite"></span>
+              </div>
+            </div>
+
+            
+
+            <!-- Personalisation -->
+            <h2 class="section-title">Personalisation</h2>
+            <div class="grid">
+              <label>
+                <span>Theme</span>
+                <select name="themeMode" id="themeMode">
+                  <option value="dark">Dark</option>
+                  <option value="light">Light</option>
+                </select>
+              </label>
+              <label>
+                <span>Background</span>
+                <input type="color" name="backgroundColor" id="backgroundColor" value="#000000" />
+              </label>
+              <label>
+                <span>Body Font</span>
+                <select name="fontBody" id="fontBody">
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                  <option value="'JetBrains Mono', monospace">JetBrains Mono</option>
+                </select>
+              </label>
+              <label>
+                <span>Heading Font</span>
+                <select name="fontHeading" id="fontHeading">
+                  <option value="'Geist Sans', system-ui, sans-serif">Geist Sans</option>
+                  <option value="Inter, system-ui, sans-serif">Inter</option>
+                  <option value="system-ui, sans-serif">System Sans</option>
+                  <option value="Georgia, serif">Georgia</option>
+                </select>
+              </label>
+            </div>
+
+            <!-- SEO settings -->
+            <h2 class="section-title">SEO settings</h2>
+            <div class="grid">
+              <label class="full">
+                <span>SEO Title</span>
+                <input type="text" name="seoTitle" placeholder="Title for search engines" />
+              </label>
+              <label class="full">
+                <span>SEO Description</span>
+                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social"></textarea>
+              </label>
+              <div class="uploader">
+                <div>
+                  <span>Social Image</span>
+                  <input type="file" id="og-file" accept="image/*" />
+                  <input type="hidden" name="ogImageId" id="ogImageId" />
+                </div>
+                <img id="og-preview" alt="OG Preview" style="display:none;" />
+              </div>
+            </div>
+
+            <div class="actions">
+              <button type="submit" class="save">Save</button>
+              <span id="status" class="status" aria-live="polite"></span>
+            </div>
+          </form>
+        </div>
+      </main>
+    </CardLayout>
+
+    <script is:inline define:vars={{ siteSlug }}>
+      const form = document.getElementById('settings-form');
+      const statusEl = document.getElementById('status');
+      const siteSlugVar = siteSlug;
+
+      async function loadSettings() {
+        try {
+          const res = await fetch(`/api/settings/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          const data = await res.json();
+          const s = data?.settings || {};
+          for (const [k,v] of Object.entries(s)) {
+            const el = form && form.elements && form.elements.namedItem ? form.elements.namedItem(k) : null;
+            if (el && typeof v === 'string') el.value = v;
+          }
+          applyAppearance();
+          await loadSocial();
+        } catch {}
+      }
+
+      function applyAppearance() {
+        const themeMode = document.getElementById('themeMode')?.value || 'dark';
+        const bgc = document.getElementById('backgroundColor')?.value;
+        const fontBody = document.getElementById('fontBody')?.value;
+        const fontHeading = document.getElementById('fontHeading')?.value;
+        const root = document.documentElement;
+        root.setAttribute('data-theme', themeMode);
+        root.style.setProperty('--font-family-body', fontBody);
+        root.style.setProperty('--font-family-heading', fontHeading);
+        document.body.style.backgroundColor = bgc || 'transparent';
+      }
+
+      document.getElementById('themeMode')?.addEventListener('change', applyAppearance);
+      document.getElementById('backgroundColor')?.addEventListener('input', applyAppearance);
+      document.getElementById('fontBody')?.addEventListener('change', applyAppearance);
+      document.getElementById('fontHeading')?.addEventListener('change', applyAppearance);
+
+      async function uploadImage(file) {
+        const b64 = await fileToBase64(file);
+        const payload = { imageData: b64.split(',')[1], filename: file.name, mimeType: file.type };
+        try {
+          const res = await fetch('/api/images/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          if (!res.ok) return null;
+          const json = await res.json();
+          return json?.imageId || null;
+        } catch { return null; }
+      }
+      function fileToBase64(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
+
+      const ogFile = document.getElementById('og-file');
+      const ogImageIdInput = document.getElementById('ogImageId');
+      const ogPreview = document.getElementById('og-preview');
+      ogFile?.addEventListener('change', async () => {
+        const file = ogFile.files && ogFile.files[0]; if (!file) return;
+        ogPreview.src = URL.createObjectURL(file); ogPreview.style.display = 'block';
+        const id = await uploadImage(file); if (id) ogImageIdInput.value = id;
+      });
+
+      const SOCIAL_PLATFORMS = [
+        { key: 'linkedin',     prefix: 'https://linkedin.com/in/',         inputId: 'social-linkedin' },
+        { key: 'github',       prefix: 'https://github.com/',              inputId: 'social-github' },
+        { key: 'x',            prefix: 'https://x.com/',                   inputId: 'social-x' },
+        { key: 'instagram',    prefix: 'https://instagram.com/',           inputId: 'social-instagram' },
+        { key: 'youtube',      prefix: 'https://youtube.com/@',            inputId: 'social-youtube' },
+        { key: 'tiktok',       prefix: 'https://tiktok.com/@',             inputId: 'social-tiktok' },
+        { key: 'threads',      prefix: 'https://threads.net/',             inputId: 'social-threads' },
+        { key: 'behance',      prefix: 'https://behance.net/',             inputId: 'social-behance' },
+        { key: 'medium',       prefix: 'https://medium.com/@',             inputId: 'social-medium' },
+        { key: 'facebook',     prefix: 'https://facebook.com/',            inputId: 'social-facebook' },
+        { key: 'pinterest',    prefix: 'https://pinterest.com/',           inputId: 'social-pinterest' },
+        { key: 'twitch',       prefix: 'https://twitch.tv/',               inputId: 'social-twitch' },
+        { key: 'spotify',      prefix: 'https://open.spotify.com/user/',   inputId: 'social-spotify' },
+      ];
+
+      const existingLinks = {};
+
+      async function loadSocial() {
+        try {
+          const res = await fetch(`/api/profile/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const links = data?.socialLinks || [];
+          // Map existing links by platform
+          for (const l of links) {
+            existingLinks[l.platform] = { id: l._id, url: l.url };
+          }
+
+          // Populate inputs with full URLs (or prefix as prefill)
+          for (const p of SOCIAL_PLATFORMS) {
+            const el = document.getElementById(p.inputId);
+            if (!(el instanceof HTMLInputElement)) continue;
+            const link = existingLinks[p.key];
+            if (link && typeof link.url === 'string') {
+              el.value = link.url;
+            } else {
+              el.value = p.prefix;
+            }
+          }
+          // Other socials UI removed
+        } catch {}
+      }
+
+// other socials UI removed
+
+      async function refreshSideNavSocials() {
+        try {
+          const res = await fetch(location.pathname, { credentials: 'same-origin' });
+          if (!res.ok) return;
+          const html = await res.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          const fresh = doc.querySelector('.side-nav .social-links');
+          const target = document.querySelector('.side-nav .social-links');
+          if (fresh && target) {
+            target.innerHTML = fresh.innerHTML;
+          }
+        } catch {}
+      }
+
+      document.getElementById('save-socials')?.addEventListener('click', async () => {
+        const status = document.getElementById('socials-status');
+        if (status) status.textContent = 'Saving socials…';
+        try {
+          for (const p of SOCIAL_PLATFORMS) {
+            const el = document.getElementById(p.inputId);
+            if (!(el instanceof HTMLInputElement)) continue;
+            const raw = (el.value || '').trim();
+            // Normalize: if user typed only handle, prepend prefix; if they left the default prefix unchanged, treat as empty
+            const hasRealValue = raw.length > p.prefix.length;
+            const full = raw.startsWith(p.prefix) ? raw : (p.prefix + raw.replace(/^\/+/, ''));
+            const existing = existingLinks[p.key];
+            if (existing && !hasRealValue) {
+              // Delete existing if now cleared or left at default
+              await fetch('/api/profile/social/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkId: existing.id }) });
+              delete existingLinks[p.key];
+            } else if (!existing && hasRealValue) {
+              // Add new
+              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform: p.key, url: full }) });
+              existingLinks[p.key] = { id: null, url: full };
+            } else if (existing && hasRealValue && existing.url !== full) {
+              // Replace: delete then add
+              await fetch('/api/profile/social/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkId: existing.id }) });
+              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform: p.key, url: full }) });
+              existingLinks[p.key] = { id: null, url: full };
+            }
+          }
+          if (status) status.textContent = 'Socials saved';
+          refreshSideNavSocials();
+        } catch (e) {
+          if (status) status.textContent = 'Failed to save socials';
+        }
+      });
+
+      // Removed other socials form behavior
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault(); if (statusEl) statusEl.textContent = 'Saving…';
+        const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+        if (statusEl) statusEl.textContent = res.ok ? 'Saved' : 'Failed to save';
+      });
+
+      loadSettings();
+    </script>
+  </body>
+</html>
+
+<style>
+.dashboard-header { margin-bottom: 2rem; }
+.dashboard-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: hsl(0 0% 100% / 0.97); }
+.welcome-text { color: hsl(0 0% 100% / 0.75); font-size: 1.025rem; }
+
+.settings { margin-top: 2rem; }
+.settings h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
+.settings .section-title { margin-top: 2rem; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.grid .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: .5rem; }
+label span { color: var(--typography-muted); font-size: .9rem; }
+input[type="text"], input[type="url"], textarea, select, input[type="color"] {
+  background: hsl(0 0% 100% / 0.05);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  color: hsl(0 0% 100% / 0.95);
+  border-radius: 10px; padding: .6rem .75rem; font: inherit;
+}
+.uploader { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
+.uploader img { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid hsl(0 0% 100% / 0.1); }
+.social-list { display: grid; gap: .5rem; margin-top: .5rem; }
+.social-item { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: .75rem; padding: .5rem .75rem; border: 1px solid var(--color-border-subtle); border-radius: 10px; }
+.social-item .platform { color: var(--typography-muted); text-transform: capitalize; }
+.social-item .url { color: var(--typography-link); text-decoration: none; }
+.social-item button, .actions .save, #add-social { padding: .6rem .85rem; border-radius: 10px; border: 1px solid hsl(0 0% 100% / 0.15); background: hsl(0 0% 100% / 0.08); color: inherit; cursor: pointer; }
+.social-add { display: flex; gap: .5rem; margin-top: .5rem; }
+
+/* New socials layout */
+.socials-grid { display: grid; gap: 0.75rem; margin-top: 0.5rem; }
+.social-row { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: .5rem; }
+.social-row .icon { display: inline-flex; align-items: center; justify-content: center; color: var(--typography-subtle); }
+.social-row input { background: hsl(0 0% 100% / 0.04); border: 1px solid hsl(0 0% 100% / 0.1); color: hsl(0 0% 100% / 0.95); border-radius: 8px; padding: .5rem .6rem; font: inherit; width: 100%; }
+.socials-actions { margin-top: 0.5rem; }
+
+/* removed other-socials UI styles */
+.actions { display: flex; align-items: center; gap: .75rem; margin-top: 1rem; }
+.status { color: var(--typography-subtle); }
+
+@media (max-width: 768px) {
+  .info-row { flex-direction: column; align-items: flex-start; gap: .4rem; }
+}
+</style>

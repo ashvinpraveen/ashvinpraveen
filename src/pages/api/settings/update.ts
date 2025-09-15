@@ -38,14 +38,18 @@ export const POST: APIRoute = async (ctx) => {
     if (backgroundImageId) payload.backgroundImageId = backgroundImageId as any;
 
     const token = await auth.getToken({ template: 'convex' });
+    if (!token) {
+      return new Response(JSON.stringify({ ok: false, error: 'Unauthorized (missing Convex token)' }), { status: 401 });
+    }
     const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-    if (token) client.setAuth(token);
+    client.setAuth(token);
 
     // Ensure the user exists and has a site with this slug
     await client.mutation(api.sites.upsertUser, { clerkUserId: auth.userId, username: slug });
     await client.mutation(api.sites.updateSettings, payload);
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (e: any) {
+    console.error('Settings update error:', e);
     return new Response(JSON.stringify({ ok: false, error: e?.message || 'Failed to update settings' }), { status: 500 });
   }
 };

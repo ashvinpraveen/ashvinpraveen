@@ -38,7 +38,7 @@ const user = await Astro.locals.currentUser();
 								maxlength="30"
 							/>
 							<button class="claim-btn" id="claim-btn">
-								{user ? 'Go to Dashboard' : 'Claim Now'}
+								{user ? 'Go to Settings' : 'Claim Now'}
 							</button>
 						</div>
 					</div>
@@ -236,7 +236,7 @@ const user = await Astro.locals.currentUser();
 			function updateButtonText() {
 				if (claimBtn) {
 					if (user) {
-						claimBtn.textContent = 'Go to Dashboard';
+						claimBtn.textContent = 'Go to Settings';
 					} else {
 						claimBtn.textContent = 'Claim Now';
 					}

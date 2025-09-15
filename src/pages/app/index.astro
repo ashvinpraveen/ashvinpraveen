@@ -15,6 +15,5 @@ try {
   const site = Array.isArray(sites) && sites[0] || null;
   if (site) siteSlug = site.slug;
 } catch {}
-return Astro.redirect(`/${siteSlug}/dashboard`);
+return Astro.redirect(`/${siteSlug}/settings`);
 ---
-

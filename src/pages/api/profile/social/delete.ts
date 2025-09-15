@@ -10,12 +10,14 @@ export const POST: APIRoute = async (ctx) => {
   try {
     const body = await ctx.request.json();
     const { linkId } = body || {};
-    const token = await auth.getToken();
+    const token = await auth.getToken({ template: 'convex' });
+    if (!token) return new Response('Unauthorized', { status: 401 });
     const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
     client.setAuth(token);
     await client.mutation(api.profiles.deleteSocialLink, { linkId });
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (e: any) {
+    console.error('Delete social error:', e);
     return new Response(JSON.stringify({ ok: false, error: e?.message || 'Failed to delete social link' }), { status: 500 });
   }
 };

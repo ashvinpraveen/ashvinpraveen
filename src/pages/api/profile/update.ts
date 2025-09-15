@@ -18,7 +18,10 @@ export const POST: APIRoute = async (ctx) => {
       return new Response(JSON.stringify({ error: 'Missing siteSlug' }), { status: 400 });
     }
 
-    const token = await auth.getToken();
+    const token = await auth.getToken({ template: 'convex' });
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
     const client = new ConvexHttpClient(
       import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL
     );

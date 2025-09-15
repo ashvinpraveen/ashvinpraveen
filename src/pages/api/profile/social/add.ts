@@ -10,12 +10,14 @@ export const POST: APIRoute = async (ctx) => {
   try {
     const body = await ctx.request.json();
     const { siteSlug, platform, url } = body || {};
-    const token = await auth.getToken();
+    const token = await auth.getToken({ template: 'convex' });
+    if (!token) return new Response('Unauthorized', { status: 401 });
     const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
     client.setAuth(token);
     await client.mutation(api.profiles.addSocialLink, { siteSlug, platform, url });
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
   } catch (e: any) {
+    console.error('Add social error:', e);
     return new Response(JSON.stringify({ ok: false, error: e?.message || 'Failed to add social link' }), { status: 500 });
   }
 };

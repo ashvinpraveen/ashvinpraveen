@@ -42,7 +42,14 @@ if (isUserPage && currentUserSlug) {
   try {
     const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
     const profile = await client.query(api.profiles.getProfile, { siteSlug: currentUserSlug });
-    socialLinks = (profile?.socialLinks || []).map((l: any) => ({ platform: l.platform, url: l.url }));
+    const allowedOrder = [
+      'linkedin','github','x','instagram','youtube','tiktok','threads','behance','medium','facebook','pinterest','twitch','spotify'
+    ];
+    const allowed = new Set(allowedOrder);
+    socialLinks = (profile?.socialLinks || [])
+      .filter((l: any) => allowed.has(l.platform) && typeof l.url === 'string' && l.url.trim().length > 0)
+      .sort((a: any, b: any) => allowedOrder.indexOf(a.platform) - allowedOrder.indexOf(b.platform))
+      .map((l: any) => ({ platform: l.platform, url: l.url }));
   } catch {}
 }
 ---
@@ -81,7 +88,7 @@ if (isUserPage && currentUserSlug) {
         </HeaderLink>
 
         {isCurrentUserOwner && (
-          <HeaderLink href={`/${currentUserSlug}/dashboard`} class="nav-link admin-link">
+          <HeaderLink href={`/${currentUserSlug}/settings`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Settings</span>
           </HeaderLink>
@@ -106,7 +113,7 @@ if (isUserPage && currentUserSlug) {
         </HeaderLink>
 
         {isAuthenticated && (
-          <HeaderLink href={`/${preferredUsername}/dashboard`} class="nav-link admin-link">
+          <HeaderLink href={`/${preferredUsername}/settings`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Settings</span>
           </HeaderLink>
@@ -159,30 +166,12 @@ if (isUserPage && currentUserSlug) {
 
   <div class="nav-footer">
     <div class="social-links">
-      {socialLinks.length > 0 ? (
+      {socialLinks.length > 0 && (
         socialLinks.map((l) => (
           <a href={l.url} aria-label={l.platform} class="social-link">
             <Icon name={`simple-icons:${l.platform === 'x' ? 'x' : l.platform}`} width="18" height="18" />
           </a>
         ))
-      ) : (
-        <>
-          <a href="https://github.com/ashvinpraveen" aria-label="GitHub" class="social-link">
-            <Icon name="simple-icons:github" width="18" height="18" />
-          </a>
-          <a href="https://linkedin.com/in/ashvinpraveen" aria-label="LinkedIn" class="social-link">
-            <Icon name="simple-icons:linkedin" width="18" height="18" />
-          </a>
-          <a href="https://x.com/ashvinpk" aria-label="X" class="social-link">
-            <Icon name="simple-icons:x" width="18" height="18" />
-          </a>
-          <a href="https://instagram.com/ashvinpraveen" aria-label="Instagram" class="social-link">
-            <Icon name="simple-icons:instagram" width="18" height="18" />
-          </a>
-          <a href="https://threads.net/ashvinpraveen" aria-label="Threads" class="social-link">
-            <Icon name="simple-icons:threads" width="18" height="18" />
-          </a>
-        </>
       )}
     </div>
   </div>
