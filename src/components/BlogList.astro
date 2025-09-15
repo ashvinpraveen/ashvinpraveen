@@ -14,7 +14,6 @@ const { slug, isOwner } = Astro.props;
 	</div>
 
 	<div class="empty-state" id="empty-state" style="display: none;">
-		<p>Ready to share your thoughts?</p>
 		<button class="empty-new-post-btn" id="empty-new-post-btn">
 			<i data-lucide="plus"></i>
 			Write your first post
@@ -99,11 +98,12 @@ const { slug, isOwner } = Astro.props;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5rem;
-		background: hsl(235 100% 60%);
-		color: white;
-		border: none;
-		padding: 0.875rem 1.75rem;
+		background: hsla(0, 0%, 100%, 0.08);
+		backdrop-filter: blur(20px);
+		border: 1px solid hsl(0 0% 100% / 0.15);
 		border-radius: 8px;
+		color: hsl(0 0% 100% / 0.8);
+		padding: 0.875rem 1.75rem;
 		font-size: 0.875rem;
 		font-weight: 500;
 		cursor: pointer;
@@ -111,13 +111,10 @@ const { slug, isOwner } = Astro.props;
 	}
 
 	.empty-new-post-btn:hover {
-		background: hsl(235 100% 55%);
+		background: hsl(0 0% 100% / 0.1);
+		color: hsl(0 0% 100% / 0.95);
 	}
 
-	.empty-new-post-btn i {
-		width: 16px;
-		height: 16px;
-	}
 
 	/* Responsive */
 	@media (max-width: 768px) {

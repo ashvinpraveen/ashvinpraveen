@@ -98,10 +98,21 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 				width: 100%;
 			}
 
-			/* Override TipTap min-height for header */
-			:global(.blog-header-editor .ProseMirror) {
-				min-height: auto !important;
-				padding-bottom: 1rem !important;
+			/* Override TipTap min-height for header with maximum specificity */
+			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor) {
+				min-height: 0rem !important;
+			}
+
+			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor .ProseMirror) {
+				min-height: 0rem !important;
+			}
+
+			:global(#blog-header-editor) {
+				min-height: 0rem !important;
+			}
+
+			:global(#blog-header-editor .ProseMirror) {
+				min-height: 0rem !important;
 			}
 
 			/* Add padding to blog list container */
@@ -137,6 +148,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 			.floating-new-post-btn i {
 				width: 20px;
 				height: 20px;
+				stroke-width: 1;
 			}
 
 			/* Responsive */
