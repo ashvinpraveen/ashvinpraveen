@@ -80,4 +80,11 @@ export default defineSchema({
     uploadedAt: v.number(),
     size: v.number(), // File size in bytes
   }).index('by_user', ['userId']).index('by_uploaded_at', ['uploadedAt']),
+
+  // Keep history of old slugs for redirects after username changes
+  siteAliases: defineTable({
+    siteId: v.id('sites'),
+    oldSlug: v.string(),
+    createdAt: v.number(),
+  }).index('by_old_slug', ['oldSlug']).index('by_site', ['siteId']),
 });

@@ -113,10 +113,7 @@ const { title } = Astro.props;
   /* Make the card content scrollable if needed */
   .content-area :global(main) {
     flex: 1;
-    padding: 3rem 4rem;
     overflow-y: auto;
-    max-width: 65ch;
-    margin: 0 auto;
   }
 
   /* Ensure footer stays at bottom */
@@ -134,7 +131,7 @@ const { title } = Astro.props;
     }
 
     .content-area :global(main) {
-      padding: 1.5rem 2rem 4.5rem; /* bottom space for mobile nav */
+      padding-bottom: 4.5rem; /* bottom space for mobile nav */
     }
 
     .content-area :global(footer) {
@@ -153,7 +150,7 @@ const { title } = Astro.props;
     }
 
     .content-area :global(main) {
-      padding: 1rem 1.5rem;
+      padding-bottom: 1rem;
     }
 
     .content-area :global(footer) {

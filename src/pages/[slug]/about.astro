@@ -12,17 +12,23 @@ const { slug } = Astro.params;
 let siteSettings: any = null;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  siteSettings = await client.query(api.sites.getSettings, { slug });
+  const resolved = await client.query(api.sites.resolveSlug, { slug });
+  if (resolved?.redirect && resolved?.canonicalSlug) {
+    return Astro.redirect(`/${resolved.canonicalSlug}/about`);
+  }
+  const actualSlug = resolved?.canonicalSlug || slug;
+  siteSettings = await client.query(api.sites.getSettings, { slug: actualSlug });
 } catch {}
 const user = await Astro.locals.currentUser();
-
-// For now, we'll check if the slug matches the current user
-// In the future, this could query a database for public profiles
 let isOwner = false;
-if (user) {
-  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
-  isOwner = userSlug.toLowerCase() === slug?.toLowerCase();
-}
+try {
+  const client2 = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  if (user?.id) {
+    const sites = await client2.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+    const current = (siteSettings?.slug || slug).toLowerCase();
+    isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === current);
+  }
+} catch {}
 
 const pageTitle = `About ${slug}`;
 const pageDescription = `Learn more about ${slug}`;

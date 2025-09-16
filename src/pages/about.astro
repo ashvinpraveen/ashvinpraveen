@@ -1,80 +1,183 @@
 ---
-import AboutHeroImage from '../assets/blog-placeholder-about.jpg';
-import Layout from '../layouts/BlogPost.astro';
-import ProfileImage from '../components/ProfileImage.astro';
-import ProfilePic from '../assets/profile.png';
-import ConvexPost from '../layouts/ConvexPost.astro';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../convex/_generated/api';
+import BaseHead from '../components/BaseHead.astro';
+import CardLayout from '../components/CardLayout.astro';
+import GlobalEditToggle from '../components/GlobalEditToggle.astro';
+import EnhancedTipTapEditor from '../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
-const siteSlug = import.meta.env.DEFAULT_SITE_SLUG || '';
-let page: any = null;
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  if (siteSlug) page = await client.query(api.pages.getByKey, { siteSlug, key: 'about' });
-} catch {}
+const user = await Astro.locals.currentUser();
+// For public about page, only admins can edit
+const isOwner = user?.username === 'ashvin' || user?.primaryEmailAddress?.emailAddress === 'ashvin@cleve.ai' || user?.primaryEmailAddress?.emailAddress === 'ashvinpraveen@gmail.com';
+
+const pageTitle = 'About';
+const pageDescription = 'Learn more about Ashvin';
+
+// Default content for public about page
+const defaultContent = `<div class="about-intro">
+<img src="/assets/profile.png" alt="Photo of Ashvin Praveen" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;" />
+<div>
+<h2 style="margin: 0 0 .25rem 0;">Ashvin Praveen</h2>
+<p style="margin: 0; color: #888;">Builder at heart — code, products, and ideas.</p>
+</div>
+</div>
+
+<p>Hey there! I'm Ashvin, a builder at heart who's passionate about the intersection of technology, design, and human experiences. I love bringing ideas to life - whether that's through code, products, or just good old-fashioned storytelling.</p>
+
+<p>Currently, I'm working on <a href="https://cleve.ai">Cleve</a>, where we're reimagining how businesses interact with their data. Before this, I've had the privilege of working with amazing teams and building things that people actually use and love.</p>
+
+<h2>What drives me</h2>
+<p>I believe the best products come from deeply understanding people and their needs. I'm fascinated by the process of turning complex problems into simple, elegant solutions. There's something magical about that moment when everything clicks together.</p>
+
+<p>I'm drawn to the messy, non-linear process of building things. The late-night debugging sessions, the "aha!" moments, the countless iterations - it's all part of the beautiful chaos of creation.</p>
+
+<h2>Beyond work</h2>
+<p>When I'm not coding or designing, you'll find me exploring new ideas, reading about everything from philosophy to the latest tech trends, or just enjoying good conversations with interesting people.</p>
+
+<p>I love the colors green and those messy, beautiful gradients - they remind me that the best things in life aren't always perfectly defined. Sometimes the magic happens in the spaces between.</p>
+
+<p>Feel free to reach out if you want to chat about ideas, collaborate on something interesting, or just say hello. I'm always up for a good conversation.</p>`;
 ---
-{page ? (
-  <ConvexPost title={page.title} description={"About"} createdAt={page.updatedAt} updatedAt={page.updatedAt} content={page.content} />
-) : (
-<Layout
-	title="About Me"
-	description="Learn more about Ashvin and his journey"
-	pubDate={new Date('January 15 2025')}
-	heroImage={AboutHeroImage}
->
-	<div class="about-intro">
-		<ProfileImage image={ProfilePic} alt="Photo of Ashvin Praveen" size={120} />
-		<div>
-			<h2 style="margin: 0 0 .25rem 0;">Ashvin Praveen</h2>
-			<p class="text-muted" style="margin: 0;">Builder at heart — code, products, and ideas.</p>
-		</div>
-	</div>
 
-	<p>
-		Hey there! I'm Ashvin, a builder at heart who's passionate about the intersection of technology, 
-		design, and human experiences. I love bringing ideas to life - whether that's through code, 
-		products, or just good old-fashioned storytelling.
-	</p>
+<!doctype html>
+<html lang="en" data-theme="dark">
+	<head>
+		<BaseHead title={pageTitle} description={pageDescription} />
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+	</head>
+	<body data-is-owner={isOwner} data-slug="public-about">
+		<CardLayout>
+			<main>
+				<!-- ============================================ -->
+				<!-- ENHANCED TIPTAP EDITOR (same as user's about page) -->
+				<!-- ============================================ -->
+				<EnhancedTipTapEditor
+					id="public-about-editor"
+					placeholder={isOwner ? 'Edit the public about page...' : 'About Ashvin'}
+					content={defaultContent}
+					editable={false}
+					showBubbleMenu={true}
+					showContextMenu={true}
+					showUploadModal={true}
+					isOwner={isOwner}
+					slug="homepage"
+					pageKey="public-about"
+					class="editor-container"
+				/>
+			</main>
+		</CardLayout>
+		<GlobalEditToggle isOwner={isOwner} />
 
-	<p>
-		Currently, I'm working on <a href="https://cleve.ai">Cleve</a>, where we're reimagining how 
-		businesses interact with their data. Before this, I've had the privilege of working with amazing 
-		teams and building things that people actually use and love.
-	</p>
+		<!-- Convex Provider Wrapper for Real-time Streaming -->
+		<ConvexProviderWrapper
+			slug="homepage"
+			editorId="public-about-editor"
+			isOwner={isOwner}
+			pageKey="public-about"
+			pageTitle="About"
+			client:load
+		/>
 
-	<h2>What drives me</h2>
-	<p>
-		I believe the best products come from deeply understanding people and their needs. I'm fascinated 
-		by the process of turning complex problems into simple, elegant solutions. There's something magical 
-		about that moment when everything clicks together.
-	</p>
+		<!-- ============================================ -->
+		<!-- MINIMAL STYLES FOR EDITOR CONTAINER -->
+		<!-- ============================================ -->
+		<style>
+			/* Override global main constraints for full-width editor with high specificity */
+			:global(.content-area) main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-	<p>
-		I'm drawn to the messy, non-linear process of building things. The late-night debugging sessions, 
-		the "aha!" moments, the countless iterations - it's all part of the beautiful chaos of creation.
-	</p>
+			/* Additional overrides to ensure full width */
+			.content-area main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-	<h2>Beyond work</h2>
-	<p>
-		When I'm not coding or designing, you'll find me exploring new ideas, reading about everything 
-		from philosophy to the latest tech trends, or just enjoying good conversations with interesting people.
-	</p>
+			main {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
 
-	<p>
-		I love the colors green and those messy, beautiful gradients - they remind me that the best 
-		things in life aren't always perfectly defined. Sometimes the magic happens in the spaces between.
-	</p>
+			.editor-container {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				position: relative;
+				overflow: visible;
+			}
 
-	<p>
-		Feel free to reach out if you want to chat about ideas, collaborate on something interesting, 
-		or just say hello. I'm always up for a good conversation.
-	</p>
+			/* About intro styling */
+			:global(.about-intro) {
+				display: flex;
+				align-items: center;
+				gap: 1rem;
+				margin: 1rem 0 1.5rem;
+			}
 
-  <style>
-    .about-intro { display: flex; align-items: center; gap: 1rem; margin: 1rem 0 1.5rem; }
-    @media (max-width: 640px) { .about-intro { gap: 0.75rem; } }
-  </style>
-  </Layout>
-)}
+			@media (max-width: 640px) {
+				:global(.about-intro) {
+					gap: 0.75rem;
+				}
+			}
+		</style>
+
+		<!-- ============================================ -->
+		<!-- INITIALIZE EDIT MODE FROM GLOBAL TOGGLE -->
+		<!-- ============================================ -->
+		<script type="module">
+			console.log('🚨 Public about page script starting to load...');
+			let isEditMode = false;
+
+			// Get page configuration from data attributes
+			function getPageConfig() {
+				const bodyElement = document.body;
+				return {
+					isOwner: bodyElement.dataset.isOwner === 'true',
+					slug: bodyElement.dataset.slug
+				};
+			}
+
+			// Initialize when page loads
+			document.addEventListener('DOMContentLoaded', function() {
+				console.log('🌟 Public about page DOM loaded, starting initialization...');
+				const config = getPageConfig();
+				console.log('⚙️ Page config:', config);
+				console.log('🔧 Public about page loaded, setting up edit mode integration...');
+
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					isEditMode = e.detail.isEditMode;
+
+					// Get the enhanced editor instance
+					const editorInstance = window[`public-about-editorEditor`];
+					if (editorInstance && editorInstance.getEditor()) {
+						const shouldBeEditable = config.isOwner && isEditMode;
+						editorInstance.setEditable(shouldBeEditable);
+					}
+				});
+
+				// Set initial edit mode based on saved state
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode && config.isOwner) {
+					isEditMode = true;
+					// Trigger the event to update editor
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
+
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+			});
+		</script>
+	</body>
+</html>

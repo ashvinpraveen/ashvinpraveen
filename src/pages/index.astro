@@ -1,9 +1,127 @@
 ---
 import BaseHead from '../components/BaseHead.astro';
 import CardLayout from '../components/CardLayout.astro';
+import EnhancedTipTapEditor from '../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../components/ConvexProviderWrapper.tsx';
+import GlobalEditToggle from '../components/GlobalEditToggle.astro';
+import BlogList from '../components/BlogList.astro';
 export const prerender = false;
 
 const user = await Astro.locals.currentUser();
+
+// Check if user is admin (you can define your own admin logic)
+const isAdmin = user?.username === 'ashvin' ||
+  user?.primaryEmailAddress?.emailAddress === 'ashvin@cleve.ai' ||
+  user?.primaryEmailAddress?.emailAddress === 'ashvinpraveen@gmail.com';
+
+// Demo mode: everyone can edit but changes don't save to database
+const isDemoMode = !isAdmin;
+
+// Default about content for demo
+const defaultAboutContent = `
+<h1>About Me</h1>
+<p>Welcome to my corner of the internet! I'm passionate about technology, creativity, and connecting with others.</p>
+<p>Feel free to edit this content to see how easy it is to customize your own page. Try clicking the edit toggle in the top right!</p>
+<h2>What I Do</h2>
+<p>I love building things, learning new technologies, and sharing knowledge with the community.</p>
+`;
+
+// Default blog header content for demo
+const defaultBlogHeaderContent = `
+<h1>My Blog</h1>
+<p>Thoughts, ideas, and stories from my journey. Feel free to edit this header!</p>
+`;
+
+// Default homepage content
+const defaultHomeContent = `
+<section class="hero-section">
+	<div class="glass-card hero-card">
+		<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white/95 leading-tight">Claim Your Corner of the Internet</h1>
+		<p class="hero-subtitle">Create a beautiful personal website that's uniquely yours</p>
+
+		<div class="claim-form">
+			<div class="url-preview">yoursite.com/u/</div>
+			<div class="input-wrapper">
+				<input
+					type="text"
+					id="username-input"
+					placeholder="your-name"
+					class="username-input"
+					maxlength="30"
+				/>
+				<button class="claim-btn" id="claim-btn">
+					${user ? 'Go to Settings' : 'Claim Now'}
+				</button>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="steps-section">
+	<div class="glass-card">
+		<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Get yours in 3 steps</h2>
+		<div class="steps-grid">
+			<div class="step">
+				<div class="step-number">1</div>
+				<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Claim Your Name</h3>
+				<p>Choose your unique handle and reserve your space</p>
+			</div>
+			<div class="step">
+				<div class="step-number">2</div>
+				<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Build Your Page</h3>
+				<p>Add your bio, projects, and links with in-place editing</p>
+			</div>
+			<div class="step">
+				<div class="step-number">3</div>
+				<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">It Goes Live</h3>
+				<p>Your site is instantly published and ready to share</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="features-section">
+	<div class="glass-card">
+		<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Everything you need</h2>
+		<div class="bento-grid">
+			<div class="bento-item large">
+				<div class="bento-icon">✨</div>
+				<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Beautiful</h3>
+				<p>Stunning designs that make you stand out from the crowd</p>
+			</div>
+			<div class="bento-item">
+				<div class="bento-icon">✏️</div>
+				<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Easy to Edit</h3>
+				<p>Click and type to edit anything</p>
+			</div>
+			<div class="bento-item">
+				<div class="bento-icon">🤖</div>
+				<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Optimised for LLMs</h3>
+				<p>AI-friendly structure</p>
+			</div>
+			<div class="bento-item">
+				<div class="bento-icon">🔗</div>
+				<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">All Your Links</h3>
+				<p>One place for everything</p>
+			</div>
+			<div class="bento-item large">
+				<div class="bento-icon">📝</div>
+				<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Effortless Blogging</h3>
+				<p>Write and publish beautiful posts without the hassle</p>
+			</div>
+		</div>
+	</div>
+</section>
+
+<section class="final-cta-section">
+	<div class="glass-card cta-card">
+		<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Ready to claim your corner?</h2>
+		<button class="final-cta-btn" onclick="document.getElementById('claim-section').scrollIntoView({behavior: 'smooth'})">
+			Claim Your Corner of the Internet
+		</button>
+	</div>
+</section>
+`;
 ---
 
 <!doctype html>
@@ -18,107 +136,364 @@ const user = await Astro.locals.currentUser();
 			type="text/javascript">
 		</script>
 	</head>
-	<body>
+	<body data-is-admin={isAdmin} data-is-demo={isDemoMode}>
 		<CardLayout>
 			<main>
-			<!-- Hero Section with Claim Form -->
-			<section id="claim-section" class="hero-section">
-				<div class="glass-card hero-card">
-					<h1 class="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 text-white/95 leading-tight">Claim Your Corner of the Internet</h1>
-					<p class="hero-subtitle">Create a beautiful personal website that's uniquely yours</p>
+				<!-- Hero Section (Admin only) -->
+				{isAdmin && (
+					<section class="section-container hero-section-container">
+						<EnhancedTipTapEditor
+							id="hero-editor"
+							placeholder="Edit the hero content..."
+							content={defaultHomeContent}
+							editable={false}
+							showBubbleMenu={false}
+							showContextMenu={true}
+							showUploadModal={true}
+							isOwner={isAdmin}
+							slug="homepage"
+							pageKey="homepage-hero"
+							class="hero-editor"
+						/>
+					</section>
+				)}
 
-					<div class="claim-form">
-						<div class="url-preview">yoursite.com/u/</div>
-						<div class="input-wrapper">
-							<input
-								type="text"
-								id="username-input"
-								placeholder="your-name"
-								class="username-input"
-								maxlength="30"
+				<!-- About Section Demo (exactly like /[slug]/about structure) -->
+				<section class="demo-about-section">
+					<h2 class="demo-section-title">About Demo</h2>
+					<div class="demo-about-main">
+						<EnhancedTipTapEditor
+							id="demo-about-editor"
+							placeholder="Try editing this about page! (Demo mode - changes won't be saved)"
+							content={defaultAboutContent}
+							editable={false}
+							showBubbleMenu={true}
+							showContextMenu={true}
+							showUploadModal={true}
+							isOwner={true}
+							slug="homepage"
+							pageKey="demo-about"
+							class="demo-about-editor"
+						/>
+					</div>
+				</section>
+
+				<!-- Blog Section Demo (exactly like /[slug]/blog structure) -->
+				<section class="demo-blog-section">
+					<h2 class="demo-section-title">Blog Demo</h2>
+					<div class="demo-blog-main">
+						<!-- Editable Blog Header (exactly like user's blog) -->
+						<div class="blog-header-container">
+							<EnhancedTipTapEditor
+								id="demo-blog-header-editor"
+								placeholder="Try editing this blog header! (Demo mode - changes won't be saved)"
+								content={defaultBlogHeaderContent}
+								editable={false}
+								showBubbleMenu={false}
+								showContextMenu={true}
+								showUploadModal={false}
+								isOwner={true}
+								slug="homepage"
+								pageKey="blog-header"
+								class="blog-header-editor"
 							/>
-							<button class="claim-btn" id="claim-btn">
-								{user ? 'Go to Settings' : 'Claim Now'}
-							</button>
 						</div>
-					</div>
-				</div>
-			</section>
 
-			<!-- Three Steps Section -->
-			<section class="steps-section">
-				<div class="glass-card">
-					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Get yours in 3 steps</h2>
-					<div class="steps-grid">
-						<div class="step">
-							<div class="step-number">1</div>
-							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Claim Your Name</h3>
-							<p>Choose your unique handle and reserve your space</p>
-						</div>
-						<div class="step">
-							<div class="step-number">2</div>
-							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">Build Your Page</h3>
-							<p>Add your bio, projects, and links with in-place editing</p>
-						</div>
-						<div class="step">
-							<div class="step-number">3</div>
-							<h3 class="text-xl md:text-2xl font-semibold mb-4 text-white/95">It Goes Live</h3>
-							<p>Your site is instantly published and ready to share</p>
-						</div>
-					</div>
-				</div>
-			</section>
+						<!-- Blog Posts List (exactly like user's blog) -->
+						<BlogList slug="homepage" isOwner={true} />
 
-			<!-- Features Bento Grid -->
-			<section class="features-section">
-				<div class="glass-card">
-					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Everything you need</h2>
-					<div class="bento-grid">
-						<div class="bento-item large">
-							<div class="bento-icon">✨</div>
-							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Beautiful</h3>
-							<p>Stunning designs that make you stand out from the crowd</p>
-						</div>
-						<div class="bento-item">
-							<div class="bento-icon">✏️</div>
-							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Easy to Edit</h3>
-							<p>Click and type to edit anything</p>
-						</div>
-						<div class="bento-item">
-							<div class="bento-icon">🤖</div>
-							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Optimised for LLMs</h3>
-							<p>AI-friendly structure</p>
-						</div>
-						<div class="bento-item">
-							<div class="bento-icon">🔗</div>
-							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">All Your Links</h3>
-							<p>One place for everything</p>
-						</div>
-						<div class="bento-item large">
-							<div class="bento-icon">📝</div>
-							<h3 class="text-lg md:text-xl font-semibold mb-4 text-white/95">Effortless Blogging</h3>
-							<p>Write and publish beautiful posts without the hassle</p>
-						</div>
+						<!-- Floating New Post Button (exactly like user's blog) -->
+						<button class="floating-new-post-btn" id="demo-new-post-btn">
+							<i data-lucide="plus"></i>
+						</button>
 					</div>
-				</div>
-			</section>
-
-			<!-- Final CTA -->
-			<section class="final-cta-section">
-				<div class="glass-card cta-card">
-					<h2 class="text-3xl md:text-4xl font-bold mb-6 text-center text-white/95">Ready to claim your corner?</h2>
-					<button class="final-cta-btn" onclick="document.getElementById('claim-section').scrollIntoView({behavior: 'smooth'})">
-						Claim Your Corner of the Internet
-					</button>
-				</div>
-			</section>
+				</section>
 			</main>
 		</CardLayout>
+
+		<!-- Global Edit Toggle for Everyone (Demo Mode) -->
+		<GlobalEditToggle isOwner={true} />
+
+		<!-- Convex Provider Wrappers -->
+		{isAdmin && (
+			<ConvexProviderWrapper
+				slug="homepage"
+				editorId="hero-editor"
+				isOwner={isAdmin}
+				pageKey="homepage-hero"
+				pageTitle="Homepage Hero"
+				client:load
+			/>
+		)}
+
+		<!-- Demo About Convex Provider -->
+		<ConvexProviderWrapper
+			slug="homepage"
+			editorId="demo-about-editor"
+			isOwner={true}
+			pageKey="demo-about"
+			pageTitle="About Demo"
+			client:load
+		/>
+
+		<!-- Demo Blog Header Convex Provider -->
+		<ConvexProviderWrapper
+			slug="homepage"
+			editorId="demo-blog-header-editor"
+			isOwner={true}
+			pageKey="blog-header"
+			pageTitle="Blog Header"
+			client:load
+		/>
+
+		<!-- Demo sections use localStorage only -->
+		<div id="demo-storage-handler" style="display: none;"></div>
+
+		<style>
+			/* Demo Section Layout */
+			.demo-about-section, .demo-blog-section {
+				margin-bottom: 4rem;
+			}
+
+			.demo-section-title {
+				font-size: 2rem;
+				font-weight: 700;
+				color: hsl(0 0% 100% / 0.95);
+				margin-bottom: 2rem;
+				text-align: center;
+				padding: 0 3rem;
+			}
+
+			/* Demo About Section - Full Width Like User's About Page */
+			.demo-about-main {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				padding: 0;
+			}
+
+			.demo-about-editor {
+				width: 100%;
+				max-width: none;
+				margin: 0;
+				position: relative;
+				overflow: visible;
+			}
+
+			/* Override TipTap constraints for demo about editor */
+			:global(.demo-about-main .demo-about-editor.enhanced-tiptap-editor) {
+				max-width: none !important;
+				padding: 0rem !important;
+				margin: 0 !important;
+				width: 100% !important;
+			}
+
+			/* Demo Blog Section - Exact Copy of User's Blog Layout */
+			.demo-blog-main {
+				padding: 0 !important;
+				position: relative;
+			}
+
+			/* Blog Header Container - remove min-height from TipTap */
+			.demo-blog-main .blog-header-container {
+				margin-bottom: 0;
+			}
+
+			.demo-blog-main .blog-header-editor {
+				width: 100%;
+			}
+
+			/* Override TipTap min-height and padding for header with maximum specificity */
+			:global(div.demo-blog-main div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor) {
+				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
+			}
+
+			:global(div.demo-blog-main div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor .ProseMirror) {
+				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
+			}
+
+			:global(#demo-blog-header-editor) {
+				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
+			}
+
+			:global(#demo-blog-header-editor .ProseMirror) {
+				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
+			}
+
+			/* Add padding to blog list container */
+			:global(.demo-blog-main .posts-container) {
+				padding: 0 3rem 3rem 3rem;
+			}
+
+			/* Floating New Post Button */
+			.floating-new-post-btn {
+				position: fixed;
+				bottom: 2rem;
+				right: 2rem;
+				width: 56px;
+				height: 56px;
+				background: hsl(0 0% 100% / 0.05);
+				backdrop-filter: blur(20px);
+				border: 1px solid hsl(0 0% 100% / 0.15);
+				border-radius: 50%;
+				color: hsl(0 0% 100% / 0.8);
+				cursor: pointer;
+				transition: all 0.2s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				z-index: 1000;
+			}
+
+			.floating-new-post-btn:hover {
+				background: hsl(0 0% 100% / 0.1);
+				color: hsl(0 0% 100% / 0.95);
+			}
+
+			.floating-new-post-btn i {
+				width: 20px;
+				height: 20px;
+				stroke-width: 1;
+			}
+
+			/* Responsive */
+			@media (max-width: 768px) {
+				/* Blog list responsive padding */
+				:global(.demo-blog-main .posts-container) {
+					padding: 0 2rem 2rem 2rem;
+				}
+
+				.floating-new-post-btn {
+					bottom: 1.5rem;
+					right: 1.5rem;
+					width: 50px;
+					height: 50px;
+				}
+			}
+
+			.demo-new-post-btn i {
+				width: 20px;
+				height: 20px;
+				stroke-width: 1;
+			}
+
+			/* Keep existing landing page styles */
+			main {
+				display: flex;
+				flex-direction: column;
+				gap: 3rem;
+				max-width: none;
+			}
+
+			.glass-card {
+				background: hsl(0 0% 100% / 0.03);
+				border: 1px solid hsl(0 0% 100% / 0.08);
+				border-radius: 16px;
+				padding: 2.5rem;
+			}
+
+			.hero-section {
+				text-align: center;
+			}
+
+			.hero-subtitle {
+				font-size: 1.25rem;
+				color: hsl(0 0% 100% / 0.8);
+				margin-bottom: 3rem;
+				max-width: 600px;
+				margin-left: auto;
+				margin-right: auto;
+			}
+
+			.claim-form {
+				max-width: 500px;
+				margin: 0 auto;
+			}
+
+			.url-preview {
+				font-size: 1.1rem;
+				color: hsl(0 0% 100% / 0.7);
+				margin-bottom: 1rem;
+				font-family: 'JetBrains Mono', monospace;
+			}
+
+			.input-wrapper {
+				display: flex;
+				background: hsl(0 0% 100% / 0.1);
+				border: 2px solid hsl(0 0% 100% / 0.2);
+				border-radius: 16px;
+				overflow: hidden;
+				transition: all 0.3s ease;
+			}
+
+			.input-wrapper:focus-within {
+				border-color: hsl(235 100% 60%);
+				box-shadow: 0 0 0 3px hsl(235 100% 60% / 0.1);
+			}
+
+			.username-input {
+				flex: 1;
+				background: transparent;
+				border: none;
+				padding: 1.25rem 1.5rem;
+				font-size: 1.1rem;
+				color: hsl(0 0% 100% / 0.95);
+				outline: none;
+				font-family: 'JetBrains Mono', monospace;
+			}
+
+			.username-input::placeholder {
+				color: hsl(0 0% 100% / 0.5);
+			}
+
+			.claim-btn {
+				background: hsl(235 100% 60%);
+				color: white;
+				border: none;
+				padding: 1.25rem 2rem;
+				font-size: 1rem;
+				font-weight: 600;
+				cursor: pointer;
+				transition: all 0.2s ease;
+				white-space: nowrap;
+			}
+
+			.claim-btn:hover:not(:disabled) {
+				background: hsl(235 100% 65%);
+				transform: scale(1.02);
+			}
+
+			.claim-btn:disabled {
+				opacity: 0.7;
+				cursor: not-allowed;
+				transform: none;
+			}
+		</style>
 
 		<script define:vars={{ user }}>
 			let clerk;
 			let isClerkLoaded = false;
 			let pendingUsername = '';
+
+			// Get page data from body attributes
+			const isAdmin = document.body.dataset.isAdmin === 'true';
+			const isDemoMode = document.body.dataset.isDemo === 'true';
+
+			// Generate unique ID for new posts
+			function generateUniqueId() {
+				return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			}
+
+			// Demo new post handler
+			function handleDemoNewPost() {
+				alert('✨ This is a demo! In the real platform, this would create a new blog post. Sign up to get started!');
+			}
 
 			// Initialize when Clerk is loaded
 			window.addEventListener('load', async () => {
@@ -135,6 +510,46 @@ const user = await Astro.locals.currentUser();
 
 			// Auto-focus the input
 			usernameInput?.focus();
+
+			// Edit mode integration for all sections
+			document.addEventListener('DOMContentLoaded', function() {
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					const editMode = e.detail.isEditMode;
+
+					// Hero editor (admin only)
+					if (isAdmin) {
+						const heroInstance = window[`hero-editorEditor`];
+						if (heroInstance && heroInstance.getEditor()) {
+							heroInstance.setEditable(editMode);
+						}
+					}
+
+					// Demo editors (everyone can edit, but changes aren't saved to Convex)
+					const demoAboutInstance = window[`demo-about-editorEditor`];
+					if (demoAboutInstance && demoAboutInstance.getEditor()) {
+						demoAboutInstance.setEditable(editMode);
+					}
+
+					const demoBlogHeaderInstance = window[`demo-blog-header-editorEditor`];
+					if (demoBlogHeaderInstance && demoBlogHeaderInstance.getEditor()) {
+						demoBlogHeaderInstance.setEditable(editMode);
+					}
+				});
+
+				// Set initial edit mode based on saved state
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode) {
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
+
+				// Demo mode message
+				if (isDemoMode) {
+					console.log('🎭 Demo mode active! You can edit content but changes won\'t be saved to the database.');
+				}
+			});
 
 			// Function to handle successful authentication
 			function handleAuthSuccess(username) {
@@ -245,6 +660,112 @@ const user = await Astro.locals.currentUser();
 
 			// Update button text on load
 			updateButtonText();
+
+			// Demo sections functionality
+			document.addEventListener('DOMContentLoaded', function() {
+				// Demo new post button
+				document.getElementById('demo-new-post-btn')?.addEventListener('click', handleDemoNewPost);
+
+				// Listen for global edit mode changes for demo editors
+				window.addEventListener('editModeChanged', function(e) {
+					const editMode = e.detail.isEditMode;
+
+					// Hero editor (admin only)
+					const heroEditorInstance = window[`hero-editorEditor`];
+					if (heroEditorInstance && heroEditorInstance.getEditor()) {
+						heroEditorInstance.setEditable(editMode);
+					}
+
+					// Demo about editor
+					const aboutEditorInstance = window[`demo-about-editorEditor`];
+					if (aboutEditorInstance && aboutEditorInstance.getEditor()) {
+						aboutEditorInstance.setEditable(editMode);
+					}
+
+					// Demo blog header editor
+					const blogHeaderEditorInstance = window[`demo-blog-header-editorEditor`];
+					if (blogHeaderEditorInstance && blogHeaderEditorInstance.getEditor()) {
+						blogHeaderEditorInstance.setEditable(editMode);
+					}
+				});
+
+				// Set initial edit mode based on saved state for demo editors
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode) {
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
+
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+
+				// Create demo blog posts for homepage if they don't exist
+				createDemoBlogPosts();
+
+				// Override blog post click behavior for demo
+				setTimeout(() => {
+					setupDemoBlogPostClickHandlers();
+				}, 1000); // Wait for BlogList to load
+			});
+
+			// Create demo blog posts for the homepage demo
+			function createDemoBlogPosts() {
+				const demoPosts = [
+					{
+						id: 'demo-post-1',
+						title: 'Welcome to the Demo Blog',
+						content: '<h1>Welcome to the Demo Blog</h1><p>This is a sample blog post to showcase the blogging features. You can create, edit, and organize your thoughts with our powerful TipTap editor.</p><p>Features include:</p><ul><li>Rich text editing</li><li>Image uploads</li><li>Auto-save functionality</li><li>Beautiful responsive design</li></ul>'
+					},
+					{
+						id: 'demo-post-2',
+						title: 'Building with Modern Web Technologies',
+						content: '<h1>Building with Modern Web Technologies</h1><p>Explore how modern web technologies like Astro, React, and Convex come together to create powerful, fast websites.</p><p>This platform leverages cutting-edge tools to provide real-time collaboration and seamless content management.</p>'
+					},
+					{
+						id: 'demo-post-3',
+						title: 'The Power of Real-time Editing',
+						content: '<h1>The Power of Real-time Editing</h1><p>Experience the magic of real-time collaborative editing. Changes are saved automatically and synced across all devices instantly.</p><p>Perfect for teams, content creators, and anyone who values efficiency in their workflow.</p>'
+					}
+				];
+
+				// Only create demo posts if none exist for homepage
+				const existingPosts = [];
+				for (let i = 0; i < localStorage.length; i++) {
+					const key = localStorage.key(i);
+					if (key && key.startsWith('blog-post-') && key.includes('-content-homepage')) {
+						existingPosts.push(key);
+					}
+				}
+
+				if (existingPosts.length === 0) {
+					demoPosts.forEach(post => {
+						localStorage.setItem(`blog-post-${post.id}-content-homepage`, post.content);
+					});
+					console.log('Created demo blog posts for homepage');
+				}
+			}
+
+			// Override blog post click handlers for demo
+			function setupDemoBlogPostClickHandlers() {
+				const postCards = document.querySelectorAll('.demo-blog-main .post-card');
+				postCards.forEach(card => {
+					// Remove existing click handlers
+					card.replaceWith(card.cloneNode(true));
+				});
+
+				// Add new demo click handlers
+				const newPostCards = document.querySelectorAll('.demo-blog-main .post-card');
+				newPostCards.forEach(card => {
+					card.addEventListener('click', (e) => {
+						e.preventDefault();
+						e.stopPropagation();
+						alert('✨ This is a demo! In the real platform, this would open the blog post editor. Sign up to get started!');
+					});
+				});
+			}
 		</script>
 	</body>
 </html>

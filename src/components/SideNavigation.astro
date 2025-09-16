@@ -13,6 +13,16 @@ const auth = Astro.locals.auth();
 // Check if user is actually authenticated
 const isAuthenticated = user && auth && auth.userId;
 const preferredUsername = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
+let ownerSlug: string | null = null;
+
+// Always resolve the authenticated user's current site slug from Convex
+if (isAuthenticated) {
+  try {
+    const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+    const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+    ownerSlug = (Array.isArray(sites) && sites[0]?.slug) || null;
+  } catch {}
+}
 
 // Detect if we're on a user page
 const currentPath = Astro.url.pathname;
@@ -29,8 +39,9 @@ if (isUserPage) {
   currentUserSlug = pathParts[0]; // /username/...
 
   if (isAuthenticated) {
-    const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
-    isCurrentUserOwner = userSlug.toLowerCase() === currentUserSlug?.toLowerCase();
+    const fallbackSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+    const compareSlug = (ownerSlug || fallbackSlug || '').toLowerCase();
+    isCurrentUserOwner = compareSlug === currentUserSlug?.toLowerCase();
   }
 }
 
@@ -113,7 +124,7 @@ if (isUserPage && currentUserSlug) {
         </HeaderLink>
 
         {isAuthenticated && (
-          <HeaderLink href={`/${preferredUsername}/settings`} class="nav-link admin-link">
+          <HeaderLink href={`/${ownerSlug || preferredUsername}/settings`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Settings</span>
           </HeaderLink>
@@ -127,11 +138,11 @@ if (isUserPage && currentUserSlug) {
       // Logged in user
       <>
         {!isViewingOwnPage && (
-          <a href={`/${preferredUsername}`} class="user-link">
+          <a href={`/${ownerSlug || preferredUsername}`} class="user-link">
             <div class="user-avatar">
               <img
-                src={user.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.firstName || preferredUsername)}`}
-                alt={`${user.firstName || preferredUsername}'s avatar`}
+                src={user.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.firstName || ownerSlug || preferredUsername)}`}
+                alt={`${user.firstName || ownerSlug || preferredUsername}'s avatar`}
                 width="20"
                 height="20"
               />
@@ -384,10 +395,10 @@ if (isUserPage && currentUserSlug) {
   }
 
   .social-links {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(4, 36px); /* cap at 4 icons per row */
     gap: 8px;
-    justify-content: center;
-    flex-wrap: wrap;
+    justify-content: center; /* center the grid within the sidebar */
   }
 
   .social-link {

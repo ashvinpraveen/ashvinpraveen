@@ -1,6 +1,10 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 
+const RESERVED_SLUGS = new Set([
+  'about','blog','app','sign-in','sign-up','onboarding','api','rss','rss.xml','sitemap','sitemap.xml','robots.txt','favicon.ico'
+]);
+
 export const upsertUser = mutation({
   args: { clerkUserId: v.string(), username: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -92,6 +96,105 @@ export const getSettings = query({
   },
 });
 
+// Resolve a slug to a site, following alias redirects.
+export const resolveSlug = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    // Try direct match first
+    const direct = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .first();
+    if (direct) {
+      return { site: direct, redirect: false, canonicalSlug: direct.slug };
+    }
+    // Then check aliases
+    const alias = await ctx.db
+      .query('siteAliases')
+      .withIndex('by_old_slug', (q) => q.eq('oldSlug', args.slug))
+      .first();
+    if (!alias) return null;
+    const site = await ctx.db.get(alias.siteId);
+    if (!site) return null;
+    return { site, redirect: true, canonicalSlug: site.slug };
+  },
+});
+
+export const checkSlugAvailability = query({
+  args: { slug: v.string() },
+  handler: async (ctx, args) => {
+    const raw = args.slug.trim();
+    const normalized = raw.toLowerCase();
+    const valid = /^[a-z0-9-]{3,30}$/.test(normalized);
+    if (!valid) return { available: false, reason: 'Invalid format. Use 3-30 chars: a-z, 0-9, -' };
+    if (RESERVED_SLUGS.has(normalized)) return { available: false, reason: 'Reserved URL' };
+    const existing = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', normalized))
+      .first();
+    if (existing) return { available: false, reason: 'Taken' };
+    const aliasHit = await ctx.db
+      .query('siteAliases')
+      .withIndex('by_old_slug', (q) => q.eq('oldSlug', normalized))
+      .first();
+    if (aliasHit) return { available: false, reason: 'Taken (alias)' };
+    return { available: true };
+  },
+});
+
+export const changeSlug = mutation({
+  args: { currentSlug: v.string(), newSlug: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthorized');
+
+    const current = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', args.currentSlug))
+      .first();
+    if (!current) throw new Error('Site not found');
+
+    // Verify ownership
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkUserId', identity.subject))
+      .first();
+    if (!user || current.ownerId !== user._id) throw new Error('Not authorized');
+
+    const raw = args.newSlug.trim();
+    const normalized = raw.toLowerCase();
+    const valid = /^[a-z0-9-]{3,30}$/.test(normalized);
+    if (!valid) throw new Error('Invalid slug format');
+    if (RESERVED_SLUGS.has(normalized)) throw new Error('Slug is reserved');
+
+    // If slug unchanged, no-op
+    if (normalized === current.slug) return { ok: true, slug: current.slug, changed: false };
+
+    // Ensure not taken
+    const conflict = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', normalized))
+      .first();
+    if (conflict) throw new Error('Slug already taken');
+    const aliasConflict = await ctx.db
+      .query('siteAliases')
+      .withIndex('by_old_slug', (q) => q.eq('oldSlug', normalized))
+      .first();
+    if (aliasConflict) throw new Error('Slug already taken');
+
+    // Create alias for old slug and update site
+    await ctx.db.insert('siteAliases', {
+      siteId: current._id,
+      oldSlug: current.slug,
+      createdAt: Date.now(),
+    });
+    await ctx.db.patch(current._id, { slug: normalized, updatedAt: Date.now() });
+    // Optionally update user's username mirror if stored
+    await ctx.db.patch(user._id, { username: normalized });
+
+    return { ok: true, slug: normalized, changed: true };
+  },
+});
 export const updateSettings = mutation({
   args: {
     slug: v.string(),
@@ -143,5 +246,52 @@ export const updateSettings = mutation({
 
     await ctx.db.patch(site._id, patch);
     return true;
+  },
+});
+
+// Ensure homepage site exists for public pages
+export const ensureHomepageSite = mutation({
+  args: {},
+  handler: async (ctx, args) => {
+    const homepageSlug = 'homepage';
+
+    // Check if homepage site already exists
+    const existing = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', homepageSlug))
+      .first();
+
+    if (existing) {
+      return existing._id;
+    }
+
+    // Create homepage site - find admin user or create one
+    let adminUser = await ctx.db
+      .query('users')
+      .withIndex('by_username', (q) => q.eq('username', 'ashvin'))
+      .first();
+
+    if (!adminUser) {
+      // Create admin user if it doesn't exist
+      const adminUserId = await ctx.db.insert('users', {
+        clerkUserId: 'admin-homepage',
+        username: 'ashvin',
+        createdAt: Date.now()
+      });
+      adminUser = await ctx.db.get(adminUserId);
+    }
+
+    const now = Date.now();
+    const siteId = await ctx.db.insert('sites', {
+      ownerId: adminUser!._id,
+      name: 'Homepage',
+      slug: homepageSlug,
+      title: 'Ashvin Praveen',
+      bio: 'Builder at heart — code, products, and ideas.',
+      createdAt: now,
+      updatedAt: now
+    });
+
+    return siteId;
   },
 });

@@ -1,112 +1,224 @@
 ---
-import { Image } from 'astro:assets';
-import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../convex/_generated/api';
 import BaseHead from '../../components/BaseHead.astro';
 import CardLayout from '../../components/CardLayout.astro';
-// Footer removed
-import FormattedDate from '../../components/FormattedDate.astro';
-import { SITE_DESCRIPTION, SITE_TITLE } from '../../consts';
+import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
+import BlogList from '../../components/BlogList.astro';
+import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
-let posts: any[] = [];
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  const siteSlug = import.meta.env.DEFAULT_SITE_SLUG || '';
-  if (siteSlug) {
-    posts = await client.query(api.posts.listBySite, { siteSlug });
-  }
-} catch {}
+const user = await Astro.locals.currentUser();
+// For public blog page, only admins can edit
+const isOwner = user?.username === 'ashvin' || user?.primaryEmailAddress?.emailAddress === 'ashvin@cleve.ai' || user?.primaryEmailAddress?.emailAddress === 'ashvinpraveen@gmail.com';
+
+const pageTitle = 'Blog';
+const pageDescription = 'Latest thoughts and ideas';
+
+// Default content for blog header
+const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts and notes to self</p>';
 ---
 
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<BaseHead title={pageTitle} description={pageDescription} />
+		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+	</head>
+	<body data-is-owner={isOwner} data-slug="public-blog">
+		<CardLayout>
+			<main>
+				<!-- Editable Blog Header -->
+				<div class="blog-header-container">
+					<EnhancedTipTapEditor
+						id="public-blog-header-editor"
+						placeholder={isOwner ? 'Write your blog header...' : 'No blog header yet.'}
+						content={defaultBlogHeader}
+						editable={false}
+						showBubbleMenu={false}
+						showContextMenu={true}
+						showUploadModal={false}
+						isOwner={isOwner}
+						slug="homepage"
+						pageKey="public-blog-header"
+						class="blog-header-editor"
+					/>
+				</div>
+
+				<!-- Blog Posts List -->
+				<BlogList slug="homepage" isOwner={isOwner} />
+
+				<!-- Floating New Post Button -->
+				{isOwner && (
+					<button class="floating-new-post-btn" id="public-new-post-btn">
+						<i data-lucide="plus"></i>
+					</button>
+				)}
+			</main>
+		</CardLayout>
+
+		<GlobalEditToggle isOwner={isOwner} />
+
+		<!-- Convex Provider Wrapper for Blog Header -->
+		<ConvexProviderWrapper
+			slug="homepage"
+			editorId="public-blog-header-editor"
+			isOwner={isOwner}
+			pageKey="public-blog-header"
+			pageTitle="Blog Header"
+			client:load
+		/>
+
 		<style>
-			main { width: 100%; max-width: 100%; }
-			ul {
-				display: flex;
-				flex-wrap: wrap;
-				gap: 2rem;
-				list-style-type: none;
-				margin: 0;
-				padding: 0;
+			/* Remove main container padding since TipTap has its own */
+			:global(.content-area) main {
+				padding: 0 !important;
 			}
-			ul li {
-				width: calc(50% - 1rem);
+
+			.content-area main {
+				padding: 0 !important;
 			}
-			ul li * {
-				text-decoration: none;
-				transition: 0.2s ease;
+
+			main {
+				padding: 0 !important;
 			}
-			ul li:first-child { width: 100%; margin-bottom: 1rem; text-align: center; }
-			ul li:first-child img {
+
+			/* Blog Header Container - remove min-height from TipTap */
+			.blog-header-container {
+				margin-bottom: 0;
+			}
+
+			.blog-header-editor {
 				width: 100%;
 			}
-			ul li:first-child .title {
-				/* Uses global h4 size */
+
+			/* Override TipTap min-height and padding for header with maximum specificity */
+			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor) {
+				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
 			}
-			ul li img {
-				margin-bottom: 0.5rem;
-				border-radius: 12px;
+
+			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor .ProseMirror) {
+				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
 			}
-			ul li a {
-				display: block;
-				border-radius: 12px;
-				color: inherit;
-				overflow: hidden;
+
+			:global(#public-blog-header-editor) {
+				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
 			}
-			ul li a .meta { padding: 0.75rem 0.9rem 0.9rem; }
-			ul li a .title { margin: 0 0 0.25rem 0; }
-			.title { margin: 0; line-height: 1.15; }
-			.date { margin: 0; }
-			/* Clean hover: white outline + subtle background */
-			ul li a { transition: box-shadow .2s ease, background-color .2s ease; }
-			ul li a:hover {
-				box-shadow: 0 0 0 3px hsl(0 0% 100% / 0.9);
-				background: hsl(0 0% 100% / 0.04);
+
+			:global(#public-blog-header-editor .ProseMirror) {
+				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
 			}
-			@media (max-width: 720px) {
-				ul {
-					gap: 0.5em;
+
+			/* Add padding to blog list container */
+			:global(.posts-container) {
+				padding: 0 3rem 3rem 3rem;
+			}
+
+			/* Floating New Post Button */
+			.floating-new-post-btn {
+				position: fixed;
+				bottom: 2rem;
+				right: 2rem;
+				width: 56px;
+				height: 56px;
+				background: hsl(0 0% 100% / 0.05);
+				backdrop-filter: blur(20px);
+				border: 1px solid hsl(0 0% 100% / 0.15);
+				border-radius: 50%;
+				color: hsl(0 0% 100% / 0.8);
+				cursor: pointer;
+				transition: all 0.2s ease;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				z-index: 1000;
+			}
+
+			.floating-new-post-btn:hover {
+				background: hsl(0 0% 100% / 0.1);
+				color: hsl(0 0% 100% / 0.95);
+			}
+
+			.floating-new-post-btn i {
+				width: 20px;
+				height: 20px;
+				stroke-width: 1;
+			}
+
+			/* Responsive */
+			@media (max-width: 768px) {
+				/* Blog list responsive padding */
+				:global(.posts-container) {
+					padding: 0 2rem 2rem 2rem;
 				}
-				ul li {
-					width: 100%;
-					text-align: center;
-				}
-				ul li:first-child {
-					margin-bottom: 0;
-				}
-				ul li:first-child .title {
-					/* Uses global h4 size */
+
+				.floating-new-post-btn {
+					bottom: 1.5rem;
+					right: 1.5rem;
+					width: 50px;
+					height: 50px;
 				}
 			}
 		</style>
-	</head>
-	<body>
-		<CardLayout>
-			<main>
-				<section>
-					<h1>Blog</h1>
-					<ul>
-						{
-							posts.map((post) => (
-								<li>
-									<a href={`/blog/${post.slug}/`}>
-										<div class="meta">
-											<h4 class="title">{post.title}</h4>
-											<p class="date">
-												{post.publishedAt ? <FormattedDate date={new Date(post.publishedAt)} /> : null}
-											</p>
-										</div>
-									</a>
-								</li>
-							))
-						}
-					</ul>
-				</section>
-			</main>
-		</CardLayout>
+
+		<script type="module">
+			console.log('🚨 Public blog page script starting to load...');
+			let isEditMode = false;
+
+			// Get page data from body attributes
+			const isOwner = document.body.dataset.isOwner === 'true';
+			const slug = document.body.dataset.slug;
+
+			// Generate unique ID for new posts
+			function generateUniqueId() {
+				return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			}
+
+			// New post handler for public blog
+			function handlePublicNewPost() {
+				if (!isOwner) return;
+				alert('✨ This would create a new blog post in the public blog. Feature coming soon!');
+			}
+
+			// Initialize when page loads
+			document.addEventListener('DOMContentLoaded', function() {
+				console.log('🌟 Public blog page DOM loaded, starting initialization...');
+
+				// New post button (floating)
+				document.getElementById('public-new-post-btn')?.addEventListener('click', handlePublicNewPost);
+
+				// Listen for global edit mode changes
+				window.addEventListener('editModeChanged', function(e) {
+					isEditMode = e.detail.isEditMode;
+
+					// Get the enhanced editor instance
+					const editorInstance = window[`public-blog-header-editorEditor`];
+					if (editorInstance && editorInstance.getEditor()) {
+						const shouldBeEditable = isOwner && isEditMode;
+						editorInstance.setEditable(shouldBeEditable);
+					}
+				});
+
+				// Set initial edit mode based on saved state
+				const savedMode = localStorage.getItem('editMode') === 'true';
+				if (savedMode && isOwner) {
+					isEditMode = true;
+					// Trigger the event to update editor
+					window.dispatchEvent(new CustomEvent('editModeChanged', {
+						detail: { isEditMode: true }
+					}));
+				}
+
+				// Initialize Lucide icons
+				if (typeof lucide !== 'undefined') {
+					lucide.createIcons();
+				}
+			});
+		</script>
 	</body>
 </html>

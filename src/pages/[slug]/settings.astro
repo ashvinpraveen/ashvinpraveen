@@ -29,6 +29,8 @@ try {
 } catch {}
 
 const siteLink = `/${siteSlug}`;
+const userFirst = user.firstName || '';
+const userLast = user.lastName || '';
 ---
 
 <html lang="en" data-theme="dark">
@@ -37,7 +39,7 @@ const siteLink = `/${siteSlug}`;
   </head>
   <body>
     <CardLayout>
-      <main>
+      <main class="settings-main">
         <div class="dashboard-header">
           <h1>Settings</h1>
           <p class="welcome-text">Welcome back, {user.firstName ?? user.username ?? user.emailAddresses?.[0]?.emailAddress?.split('@')[0]}</p>
@@ -48,21 +50,45 @@ const siteLink = `/${siteSlug}`;
             <input type="hidden" name="slug" value={siteSlug} />
 
             <!-- Your Site -->
-            <h2 class="section-title">Your Site</h2>
-            <div class="grid">
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">Your Site</h2>
+                <div class="section-actions">
+                  <button type="submit" id="save-site" class="save">Save</button>
+                  <span id="site-status" class="status" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="site-stack">
               <label>
                 <span>Site Name</span>
                 <input type="text" name="name" placeholder="My Site" />
               </label>
               <label>
+                <span>Username (URL)</span>
+                <div class="username-row">
+                  <span class="prefix">/</span>
+                  <input type="text" id="usernameInput" placeholder="your-handle" />
+                  <button type="button" id="usernameSave" class="btn-small">Change URL</button>
+                </div>
+                <small id="usernameHelp" class="hint"></small>
+              </label>
+              <label>
                 <span>Custom Domain</span>
                 <input type="text" name="customDomain" placeholder="yourdomain.com" />
               </label>
+              </div>
             </div>
 
             <!-- Socials -->
-            <h2 class="section-title">Socials</h2>
-            <div class="socials-grid">
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">Socials</h2>
+                <div class="section-actions">
+                  <button type="button" id="save-socials" class="save">Save</button>
+                  <span id="socials-status" class="status" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="socials-grid">
               <!-- Sorted by typical portfolio popularity: LinkedIn, GitHub, X, Instagram, YouTube, TikTok, Threads, Behance, Medium, Facebook, Pinterest, Twitch, Spotify -->
               <div class="social-row" data-platform="linkedin">
                 <span class="icon"><Icon name="simple-icons:linkedin" width="18" height="18" /></span>
@@ -119,17 +145,21 @@ const siteLink = `/${siteSlug}`;
                 <span class="icon"><Icon name="simple-icons:spotify" width="18" height="18" /></span>
                 <input type="text" id="social-spotify" value="https://open.spotify.com/user/" />
               </div>
-              <div class="actions socials-actions">
-                <button type="button" id="save-socials" class="save">Save Socials</button>
-                <span id="socials-status" class="status" aria-live="polite"></span>
               </div>
             </div>
 
             
 
             <!-- Personalisation -->
-            <h2 class="section-title">Personalisation</h2>
-            <div class="grid">
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">Personalisation</h2>
+                <div class="section-actions">
+                  <button type="submit" id="save-appearance" class="save">Save</button>
+                  <span id="appearance-status" class="status" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="grid">
               <label>
                 <span>Theme</span>
                 <select name="themeMode" id="themeMode">
@@ -159,11 +189,19 @@ const siteLink = `/${siteSlug}`;
                   <option value="Georgia, serif">Georgia</option>
                 </select>
               </label>
+              </div>
             </div>
 
             <!-- SEO settings -->
-            <h2 class="section-title">SEO settings</h2>
-            <div class="grid">
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">SEO settings</h2>
+                <div class="section-actions">
+                  <button type="submit" id="save-seo" class="save">Save</button>
+                  <span id="seo-status" class="status" aria-live="polite"></span>
+                </div>
+              </div>
+              <div class="grid">
               <label class="full">
                 <span>SEO Title</span>
                 <input type="text" name="seoTitle" placeholder="Title for search engines" />
@@ -180,31 +218,69 @@ const siteLink = `/${siteSlug}`;
                 </div>
                 <img id="og-preview" alt="OG Preview" style="display:none;" />
               </div>
-            </div>
-
-            <div class="actions">
-              <button type="submit" class="save">Save</button>
-              <span id="status" class="status" aria-live="polite"></span>
+              </div>
             </div>
           </form>
         </div>
       </main>
     </CardLayout>
 
-    <script is:inline define:vars={{ siteSlug }}>
+    <script is:inline define:vars={{ siteSlug, userFirst, userLast }}>
       const form = document.getElementById('settings-form');
-      const statusEl = document.getElementById('status');
-      const siteSlugVar = siteSlug;
+      const siteStatus = document.getElementById('site-status');
+      const seoStatus = document.getElementById('seo-status');
+      const appearanceStatus = document.getElementById('appearance-status');
+      let currentSlugVar = siteSlug;
+      const usernameInput = document.getElementById('usernameInput');
+      const usernameHelp = document.getElementById('usernameHelp');
+      const usernameSave = document.getElementById('usernameSave');
 
       async function loadSettings() {
         try {
-          const res = await fetch(`/api/settings/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          const res = await fetch(`/api/settings/get?slug=${encodeURIComponent(currentSlugVar)}`);
           const data = await res.json();
           const s = data?.settings || {};
           for (const [k,v] of Object.entries(s)) {
             const el = form && form.elements && form.elements.namedItem ? form.elements.namedItem(k) : null;
-            if (el && typeof v === 'string') el.value = v;
+          if (el && typeof v === 'string') el.value = v;
           }
+          // Default Site Name if missing
+          const nameEl = form?.elements?.namedItem && form.elements.namedItem('name');
+          const defaultName = [userFirst, userLast].filter(Boolean).join(' ');
+          if (nameEl && 'value' in nameEl) {
+            const current = (nameEl as any).value?.trim();
+            if (!current) {
+              (nameEl as any).value = defaultName ? `${defaultName}'s Personal Website` : "My Personal Website";
+            }
+          }
+
+          // Default SEO Title & Description if missing
+          const seoTitleEl = form?.elements?.namedItem && form.elements.namedItem('seoTitle');
+          const seoDescEl = form?.elements?.namedItem && form.elements.namedItem('seoDescription');
+          const displayName = (s?.title && typeof s.title === 'string' && s.title.trim()) || (defaultName || '').trim() || currentSlugVar;
+
+          if (seoTitleEl && 'value' in seoTitleEl) {
+            const curSeoTitle = (seoTitleEl as any).value?.trim();
+            if (!curSeoTitle) {
+              (seoTitleEl as any).value = displayName ? `${displayName} — Personal Website & Blog` : 'Personal Website & Blog';
+            }
+          }
+          if (seoDescEl && 'value' in seoDescEl) {
+            const curSeoDesc = (seoDescEl as any).value?.trim();
+            if (!curSeoDesc) {
+              const base = (typeof s.bio === 'string' && s.bio.trim())
+                ? s.bio.trim()
+                : displayName ? `Explore ${displayName}'s projects, writing, and links.` : 'Explore personal projects, writing, and links.';
+              // Trim to ~160 chars for meta description
+              (seoDescEl as any).value = base.length > 160 ? base.slice(0,157) + '…' : base;
+            }
+          }
+          if (typeof s.slug === 'string' && s.slug) {
+            currentSlugVar = s.slug;
+            const hiddenSlug = form?.elements?.namedItem && form.elements.namedItem('slug');
+            if (hiddenSlug && 'value' in hiddenSlug) hiddenSlug.value = currentSlugVar;
+          }
+          if (usernameInput) usernameInput.value = currentSlugVar;
           applyAppearance();
           await loadSocial();
         } catch {}
@@ -226,6 +302,45 @@ const siteLink = `/${siteSlug}`;
       document.getElementById('backgroundColor')?.addEventListener('input', applyAppearance);
       document.getElementById('fontBody')?.addEventListener('change', applyAppearance);
       document.getElementById('fontHeading')?.addEventListener('change', applyAppearance);
+
+      // Username availability check (debounced)
+      let checkTimer;
+      function setHelp(text, ok) {
+        if (!usernameHelp) return;
+        usernameHelp.textContent = text || '';
+        usernameHelp.style.color = ok ? 'hsl(150 70% 60%)' : 'hsl(0 70% 70%)';
+      }
+      function normSlug(s) { return (s||'').trim().toLowerCase(); }
+      usernameInput?.addEventListener('input', () => {
+        clearTimeout(checkTimer);
+        const val = normSlug(usernameInput.value);
+        if (!val) { setHelp('', true); return; }
+        checkTimer = setTimeout(async () => {
+          try {
+            const res = await fetch(`/api/sites/checkSlug?slug=${encodeURIComponent(val)}`);
+            const json = await res.json();
+            if (json.available) setHelp('Available', true);
+            else setHelp(json.reason || 'Not available', false);
+          } catch { setHelp('Check failed', false); }
+        }, 300);
+      });
+
+      usernameSave?.addEventListener('click', async () => {
+        const target = normSlug(usernameInput?.value || '');
+        if (!target || target === currentSlugVar) { setHelp('No change', false); return; }
+        setHelp('Updating…', true);
+        try {
+          const res = await fetch('/api/sites/changeSlug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newSlug: target }) });
+          const json = await res.json();
+          if (res.ok && json?.ok) {
+            window.location.href = `/${target}/settings`;
+          } else {
+            setHelp(json?.error || 'Failed to update', false);
+          }
+        } catch (e) {
+          setHelp('Failed to update', false);
+        }
+      });
 
       async function uploadImage(file) {
         const b64 = await fileToBase64(file);
@@ -268,7 +383,7 @@ const siteLink = `/${siteSlug}`;
 
       async function loadSocial() {
         try {
-          const res = await fetch(`/api/profile/get?slug=${encodeURIComponent(siteSlugVar)}`);
+          const res = await fetch(`/api/profile/get?slug=${encodeURIComponent(currentSlugVar)}`);
           if (!res.ok) return;
           const data = await res.json();
           const links = data?.socialLinks || [];
@@ -327,12 +442,12 @@ const siteLink = `/${siteSlug}`;
               delete existingLinks[p.key];
             } else if (!existing && hasRealValue) {
               // Add new
-              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform: p.key, url: full }) });
+              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: currentSlugVar, platform: p.key, url: full }) });
               existingLinks[p.key] = { id: null, url: full };
             } else if (existing && hasRealValue && existing.url !== full) {
               // Replace: delete then add
               await fetch('/api/profile/social/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ linkId: existing.id }) });
-              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: siteSlugVar, platform: p.key, url: full }) });
+              await fetch('/api/profile/social/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ siteSlug: currentSlugVar, platform: p.key, url: full }) });
               existingLinks[p.key] = { id: null, url: full };
             }
           }
@@ -346,9 +461,18 @@ const siteLink = `/${siteSlug}`;
       // Removed other socials form behavior
 
       form?.addEventListener('submit', async (e) => {
-        e.preventDefault(); if (statusEl) statusEl.textContent = 'Saving…';
+        e.preventDefault();
+        const submitter = (e as any).submitter as HTMLButtonElement | undefined;
+        const id = submitter?.id || '';
+        const map: Record<string, HTMLElement | null> = {
+          'save-site': siteStatus,
+          'save-seo': seoStatus,
+          'save-appearance': appearanceStatus,
+        };
+        const target = map[id] || siteStatus;
+        if (target) target.textContent = 'Saving…';
         const res = await fetch(form.action, { method: 'POST', body: new FormData(form) });
-        if (statusEl) statusEl.textContent = res.ok ? 'Saved' : 'Failed to save';
+        if (target) target.textContent = res.ok ? 'Saved' : 'Failed to save';
       });
 
       loadSettings();
@@ -357,17 +481,48 @@ const siteLink = `/${siteSlug}`;
 </html>
 
 <style>
+.settings-main {
+  max-width: none !important;
+  padding: 3rem !important;
+  margin: 0 !important;
+  width: 100% !important;
+}
 .dashboard-header { margin-bottom: 2rem; }
 .dashboard-header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.25rem; color: hsl(0 0% 100% / 0.97); }
 .welcome-text { color: hsl(0 0% 100% / 0.75); font-size: 1.025rem; }
 
 .settings { margin-top: 2rem; }
-.settings h2 { font-size: 1.25rem; margin-bottom: 1rem; color: hsl(0 0% 100% / 0.95); }
-.settings .section-title { margin-top: 2rem; }
+.settings h2 { font-size: 1.25rem; color: hsl(0 0% 100% / 0.95); }
+.settings .section-title { margin: 0; }
+.section-card {
+  background: hsl(0 0% 0% / 0.55);
+  border: 1px solid hsl(0 0% 100% / 0.1);
+  border-radius: 14px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0 0.75rem;
+  border-bottom: 1px dashed hsl(0 0% 100% / 0.08);
+  margin-bottom: 0.75rem;
+}
+.section-actions { display: inline-flex; align-items: center; gap: .5rem; }
+
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
 .grid .full { grid-column: 1 / -1; }
+/* Your Site section as a vertical stack */
+.site-stack { display: flex; flex-direction: column; gap: 1rem; }
 label { display: flex; flex-direction: column; gap: .5rem; }
 label span { color: var(--typography-muted); font-size: .9rem; }
+/* Username row */
+.username-row { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: .5rem; }
+.username-row .prefix { color: var(--typography-subtle); }
+.btn-small { padding: .45rem .7rem; border-radius: 8px; border: 1px solid hsl(0 0% 100% / 0.15); background: hsl(0 0% 100% / 0.08); color: inherit; cursor: pointer; }
+.hint { color: var(--typography-subtle); }
 input[type="text"], input[type="url"], textarea, select, input[type="color"] {
   background: hsl(0 0% 100% / 0.05);
   border: 1px solid hsl(0 0% 100% / 0.1);
@@ -380,7 +535,7 @@ input[type="text"], input[type="url"], textarea, select, input[type="color"] {
 .social-item { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: .75rem; padding: .5rem .75rem; border: 1px solid var(--color-border-subtle); border-radius: 10px; }
 .social-item .platform { color: var(--typography-muted); text-transform: capitalize; }
 .social-item .url { color: var(--typography-link); text-decoration: none; }
-.social-item button, .actions .save, #add-social { padding: .6rem .85rem; border-radius: 10px; border: 1px solid hsl(0 0% 100% / 0.15); background: hsl(0 0% 100% / 0.08); color: inherit; cursor: pointer; }
+.social-item button, .actions .save, #add-social, .section-actions .save { padding: .6rem .85rem; border-radius: 10px; border: 1px solid hsl(0 0% 100% / 0.15); background: hsl(0 0% 100% / 0.08); color: inherit; cursor: pointer; }
 .social-add { display: flex; gap: .5rem; margin-top: .5rem; }
 
 /* New socials layout */

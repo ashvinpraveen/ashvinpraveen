@@ -1,46 +1,24 @@
 ---
-import BaseHead from '../../../components/BaseHead.astro';
+import BaseHead from '../../components/BaseHead.astro';
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../../convex/_generated/api';
-import CardLayout from '../../../components/CardLayout.astro';
-import GlobalEditToggle from '../../../components/GlobalEditToggle.astro';
-import EnhancedTipTapEditor from '../../../components/EnhancedTipTapEditor.astro';
-import ConvexProviderWrapper from '../../../components/ConvexProviderWrapper.tsx';
+import { api } from '../../../convex/_generated/api';
+import CardLayout from '../../components/CardLayout.astro';
+import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
+import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
+import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
-const { slug, postId } = Astro.params;
-let siteSettings: any = null;
-let post: any = null;
-
-try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  if (slug && postId) {
-    const resolved = await client.query(api.sites.resolveSlug, { slug });
-    if (resolved?.redirect && resolved?.canonicalSlug) {
-      return Astro.redirect(`/${resolved.canonicalSlug}/blog/${postId}`);
-    }
-    const actualSlug = resolved?.canonicalSlug || slug;
-    siteSettings = await client.query(api.sites.getSettings, { slug: actualSlug });
-    post = await client.query(api.posts.getByUniqueId, { siteSlug: actualSlug, uniqueId: postId });
-  }
-} catch {}
-
+const { postId } = Astro.params;
 const user = await Astro.locals.currentUser();
-let isOwner = false;
-try {
-  const client2 = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  if (user?.id) {
-    const sites = await client2.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
-    const targetSlug = (siteSettings?.slug || slug).toLowerCase();
-    isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === targetSlug);
-  }
-} catch {}
+
+// For public blog posts, only admins can edit
+const isOwner = user?.username === 'ashvin' || user?.primaryEmailAddress?.emailAddress === 'ashvin@cleve.ai' || user?.primaryEmailAddress?.emailAddress === 'ashvinpraveen@gmail.com';
 
 // Default content for new posts
-const initialContent = post?.content || '<h1>Untitled Post</h1><p>Start writing your post...</p>';
+const initialContent = '<h1>Untitled Post</h1><p>Start writing your post...</p>';
 
-const pageTitle = post?.title || 'New Post';
-const pageDescription = post?.description || 'Blog post';
+const pageTitle = 'New Post';
+const pageDescription = 'Blog post';
 ---
 
 <!doctype html>
@@ -49,7 +27,7 @@ const pageDescription = post?.description || 'Blog post';
 		<BaseHead title={pageTitle} description={pageDescription} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
-	<body data-is-owner={isOwner} data-slug={siteSettings?.slug || slug} data-post-id={postId}>
+	<body data-is-owner={isOwner} data-slug="homepage" data-post-id={postId}>
 		<CardLayout>
 			<main>
 				<!-- Back Button -->
@@ -61,7 +39,7 @@ const pageDescription = post?.description || 'Blog post';
 
 				<!-- Enhanced TipTap Editor (same as about page) -->
 				<EnhancedTipTapEditor
-					id="blog-post-editor"
+					id="public-blog-post-editor"
 					placeholder={isOwner ? 'Start writing your post...' : 'No content yet.'}
 					content={initialContent}
 					editable={false}
@@ -69,7 +47,7 @@ const pageDescription = post?.description || 'Blog post';
 					showContextMenu={true}
 					showUploadModal={true}
 					isOwner={isOwner}
-					slug={slug}
+					slug="homepage"
 					pageKey={`blog-post-${postId}`}
 					class="editor-container"
 				/>
@@ -81,8 +59,8 @@ const pageDescription = post?.description || 'Blog post';
 		<!-- Convex Provider Wrapper for Real-time Streaming -->
 		<ConvexProviderWrapper
 			key={`blog-post-${postId}`}
-			slug={slug}
-			editorId="blog-post-editor"
+			slug="homepage"
+			editorId="public-blog-post-editor"
 			isOwner={isOwner}
 			pageKey={`blog-post-${postId}`}
 			pageTitle={pageTitle}
@@ -158,12 +136,11 @@ const pageDescription = post?.description || 'Blog post';
 
 			// Get page data from body attributes
 			const isOwner = document.body.dataset.isOwner === 'true';
-			const slug = document.body.dataset.slug;
 			const postId = document.body.dataset.postId;
 
-			// Back button handler
+			// Back button handler - go to public blog
 			document.getElementById('back-btn')?.addEventListener('click', () => {
-				window.location.href = `/${slug}/blog`;
+				window.location.href = '/blog';
 			});
 
 			// Initialize edit mode integration
@@ -171,7 +148,7 @@ const pageDescription = post?.description || 'Blog post';
 				// Listen for global edit mode changes
 				window.addEventListener('editModeChanged', function(e) {
 					const editMode = e.detail.isEditMode;
-					const editorInstance = window[`blog-post-editorEditor`];
+					const editorInstance = window[`public-blog-post-editorEditor`];
 					if (editorInstance && editorInstance.getEditor()) {
 						editorInstance.setEditable(isOwner && editMode);
 					}

@@ -15,19 +15,22 @@ export const prerender = false;
 const { slug } = Astro.params;
 const user = await Astro.locals.currentUser();
 const auth = Astro.locals.auth();
-
-// Simple ownership check: if logged in user's username matches the slug
 let isOwner = false;
-if (user) {
-  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
-  isOwner = userSlug.toLowerCase() === slug.toLowerCase();
-}
 
-// Load site settings for SEO if available
+// Resolve slug (handles old aliases) and load settings for SEO if available
 let siteSettings: any = null;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  siteSettings = await client.query(api.sites.getSettings, { slug });
+  const resolved = await client.query(api.sites.resolveSlug, { slug });
+  if (resolved?.redirect && resolved?.canonicalSlug) {
+    return Astro.redirect(`/${resolved.canonicalSlug}`);
+  }
+  siteSettings = resolved?.site ? await client.query(api.sites.getSettings, { slug: resolved.canonicalSlug }) : await client.query(api.sites.getSettings, { slug });
+  if (user?.id) {
+    const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+    const canonical = (resolved?.canonicalSlug || slug).toLowerCase();
+    isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === canonical);
+  }
 } catch {}
 
 const pageTitle = siteSettings?.seoTitle || `${slug.charAt(0).toUpperCase() + slug.slice(1)}'s Profile`;

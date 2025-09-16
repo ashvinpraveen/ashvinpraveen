@@ -10,15 +10,27 @@ export const prerender = false;
 const { slug } = Astro.params;
 const user = await Astro.locals.currentUser();
 
-// Check if user is the owner of this blog
-let isOwner = false;
-if (user) {
-  const userSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
-  isOwner = userSlug.toLowerCase() === slug?.toLowerCase();
-}
+// Resolve slug for alias redirects
+let actualSlug = slug;
+try {
+  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const resolved = await client.query(api.sites.resolveSlug, { slug });
+  if (resolved?.redirect && resolved?.canonicalSlug) {
+    return Astro.redirect(`/${resolved.canonicalSlug}/blog`);
+  }
+  actualSlug = resolved?.canonicalSlug || slug;
+  if (user?.id) {
+    const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+    const canonical = actualSlug.toLowerCase();
+    var isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === canonical);
+  }
+} catch {}
 
-const pageTitle = `${slug}'s Blog`;
-const pageDescription = `Blog posts by ${slug}`;
+// Check if user is the owner of this blog
+let isOwner = typeof isOwner !== 'undefined' ? isOwner : false;
+
+const pageTitle = `${actualSlug}'s Blog`;
+const pageDescription = `Blog posts by ${actualSlug}`;
 
 // Default content for blog header
 const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts and notes to self</p>';
@@ -40,7 +52,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 						placeholder={isOwner ? 'Write your blog header...' : 'No blog header yet.'}
 						content={defaultBlogHeader}
 						editable={false}
-						showBubbleMenu={true}
+						showBubbleMenu={false}
 						showContextMenu={true}
 						showUploadModal={false}
 						isOwner={isOwner}
@@ -51,7 +63,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 				</div>
 
 				<!-- Blog Posts List -->
-				<BlogList slug={slug} isOwner={isOwner} />
+				<BlogList slug={actualSlug} isOwner={isOwner} />
 
 		<!-- Floating New Post Button -->
 		{isOwner && (
@@ -98,21 +110,27 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 				width: 100%;
 			}
 
-			/* Override TipTap min-height for header with maximum specificity */
+			/* Override TipTap min-height and padding for header with maximum specificity */
 			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor) {
 				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
 			}
 
 			:global(div.blog-header-container div.blog-header-editor.enhanced-tiptap-editor .ProseMirror) {
 				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
 			}
 
 			:global(#blog-header-editor) {
 				min-height: 0rem !important;
+				padding: 3rem 3rem 0rem 3rem !important;
+				margin: 0 0 2rem 0 !important;
 			}
 
 			:global(#blog-header-editor .ProseMirror) {
 				min-height: 0rem !important;
+				padding-bottom: 0rem !important;
 			}
 
 			/* Add padding to blog list container */
