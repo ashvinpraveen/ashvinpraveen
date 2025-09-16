@@ -69,7 +69,7 @@ export const POST: APIRoute = async (ctx) => {
       return new Response(JSON.stringify({
         success: true,
         message: 'Profile created successfully!',
-        profileUrl: `/u/${username}`,
+        profileUrl: `/${username}`,
         data: {
           username,
           firstName,
@@ -86,7 +86,7 @@ export const POST: APIRoute = async (ctx) => {
       return new Response(JSON.stringify({
         success: true,
         message: 'Profile created successfully (pending sync)',
-        profileUrl: `/u/${username}`,
+        profileUrl: `/${username}`,
         data: {
           username,
           firstName,

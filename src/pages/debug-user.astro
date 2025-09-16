@@ -1,0 +1,62 @@
+---
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../convex/_generated/api';
+
+export const prerender = false;
+
+const user = await Astro.locals.currentUser();
+const auth = Astro.locals.auth();
+
+let debugInfo: any = {
+  user: user ? {
+    id: user.id,
+    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    primaryEmail: user.primaryEmailAddress?.emailAddress
+  } : null,
+  auth: auth ? {
+    userId: auth.userId
+  } : null,
+  ownerSlug: null,
+  sites: null,
+  error: null
+};
+
+if (user) {
+  try {
+    const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+    const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
+    debugInfo.sites = sites;
+    debugInfo.ownerSlug = (Array.isArray(sites) && sites[0]?.slug) || null;
+  } catch (error: any) {
+    debugInfo.error = error.message;
+  }
+}
+
+const preferredUsername = user?.username || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
+debugInfo.preferredUsername = preferredUsername;
+---
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>User Debug Info</title>
+  <style>
+    body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 2rem; }
+    pre { background: #2a2a2a; padding: 1rem; border-radius: 8px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>User Debug Information</h1>
+  <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+
+  <h2>Redirect Logic</h2>
+  <p>ownerSlug: <strong>{debugInfo.ownerSlug}</strong></p>
+  <p>preferredUsername: <strong>{preferredUsername}</strong></p>
+  <p>Would redirect to: <strong>/{debugInfo.ownerSlug || preferredUsername}</strong></p>
+
+  <hr />
+  <a href="/">← Back to home</a>
+</body>
+</html>

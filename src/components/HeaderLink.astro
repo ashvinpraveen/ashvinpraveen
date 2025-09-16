@@ -4,29 +4,29 @@ import type { HTMLAttributes } from 'astro/types';
 type Props = HTMLAttributes<'a'>;
 
 const { href, class: className, ...props } = Astro.props;
-const pathname = Astro.url.pathname.replace(import.meta.env.BASE_URL, '');
+const pathname = Astro.url.pathname;
 const subpath = pathname.match(/[^\/]+/g);
 
-// Enhanced active state logic to handle user sub-pages
+// Enhanced active state logic to handle both main site and user sub-pages
 let isActive = false;
 
-if (href === pathname) {
-  // Exact match
+// Convert href to string for comparison
+const hrefString = typeof href === 'string' ? href : '';
+
+if (hrefString === pathname) {
+  // Exact match for all pages (/, /about, /blog, /username, /username/about, etc.)
   isActive = true;
-} else if (href === '/' + (subpath?.[0] || '')) {
-  // User root page match (e.g., /ashvin matches /ashvin/blog)
-  isActive = pathname === href;
-} else if (href?.includes('/blog') && pathname.includes('/blog')) {
-  // Blog page matches
+} else if (hrefString === '/blog' && pathname.startsWith('/blog/')) {
+  // Main blog sub-pages (e.g., /blog/post-id)
   isActive = true;
-} else if (href?.includes('/about') && pathname.includes('/about')) {
-  // About page matches
+} else if (hrefString !== '/blog' && hrefString.includes('/blog') && pathname.includes('/blog')) {
+  // User blog pages (e.g., /username/blog)
   isActive = true;
-} else if (href?.includes('/settings') && pathname.includes('/settings')) {
-  // Settings page matches
+} else if (hrefString !== '/about' && hrefString.includes('/about') && pathname.includes('/about')) {
+  // User about pages (e.g., /username/about)
   isActive = true;
-} else if (href === '/' && pathname === '/') {
-  // Home page exact match
+} else if (hrefString.includes('/settings') && pathname.includes('/settings')) {
+  // Settings pages
   isActive = true;
 }
 ---

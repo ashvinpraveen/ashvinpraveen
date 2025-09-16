@@ -195,6 +195,113 @@ export const changeSlug = mutation({
     return { ok: true, slug: normalized, changed: true };
   },
 });
+
+function normalizeDomain(raw: string) {
+  try {
+    let d = (raw || '').trim().toLowerCase();
+    d = d.replace(/^https?:\/\//, '');
+    d = d.replace(/\/$/, '');
+    d = d.replace(/\.$/, '');
+    return d;
+  } catch {
+    return raw;
+  }
+}
+
+export const checkDomainAvailability = query({
+  args: { domain: v.string() },
+  handler: async (ctx, args) => {
+    const domain = normalizeDomain(args.domain);
+    if (!/^[a-z0-9.-]+$/.test(domain) || domain.length < 3) {
+      return { available: false, reason: 'Invalid domain' };
+    }
+    const inUse = await ctx.db
+      .query('sites')
+      .filter((q) => q.eq(q.field('customDomain'), domain))
+      .first();
+    if (inUse) return { available: false, reason: 'Domain already in use' };
+    return { available: true };
+  },
+});
+
+export const setCustomDomain = mutation({
+  args: { slug: v.string(), domain: v.optional(v.string()) },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthorized');
+    const site = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .first();
+    if (!site) throw new Error('Site not found');
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkUserId', identity.subject))
+      .first();
+    if (!user || site.ownerId !== user._id) throw new Error('Not authorized');
+
+    const patch: any = { updatedAt: Date.now() };
+    if (!args.domain) {
+      patch.customDomain = undefined;
+      patch.domainStatus = 'none';
+      patch.domainVerificationToken = undefined;
+      patch.domainVerifiedAt = undefined;
+      patch.lastDomainError = undefined;
+      await ctx.db.patch(site._id, patch);
+      return { ok: true, customDomain: undefined };
+    }
+
+    const domain = normalizeDomain(args.domain);
+    // Uniqueness
+    const conflict = await ctx.db
+      .query('sites')
+      .filter((q) => q.eq(q.field('customDomain'), domain))
+      .first();
+    if (conflict && conflict._id !== site._id) throw new Error('Domain already in use');
+
+    let token = site.domainVerificationToken;
+    if (!token) {
+      token = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    }
+    patch.customDomain = domain;
+    patch.domainVerificationToken = token;
+    patch.domainStatus = 'pending_dns';
+    patch.lastDomainError = undefined;
+    await ctx.db.patch(site._id, patch);
+    return { ok: true, customDomain: domain, token };
+  },
+});
+
+export const updateDomainStatus = mutation({
+  args: {
+    slug: v.string(),
+    status: v.string(),
+    lastError: v.optional(v.string()),
+    verifiedAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error('Unauthorized');
+    const site = await ctx.db
+      .query('sites')
+      .withIndex('by_slug', (q) => q.eq('slug', args.slug))
+      .first();
+    if (!site) throw new Error('Site not found');
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', (q) => q.eq('clerkUserId', identity.subject))
+      .first();
+    if (!user || site.ownerId !== user._id) throw new Error('Not authorized');
+    await ctx.db.patch(site._id, {
+      domainStatus: args.status,
+      lastDomainError: args.lastError,
+      domainVerifiedAt: args.verifiedAt,
+      updatedAt: Date.now(),
+    });
+    return true;
+  },
+});
 export const updateSettings = mutation({
   args: {
     slug: v.string(),

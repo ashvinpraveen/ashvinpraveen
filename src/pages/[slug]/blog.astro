@@ -5,13 +5,19 @@ import GlobalEditToggle from '../../components/GlobalEditToggle.astro';
 import BlogList from '../../components/BlogList.astro';
 import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
 import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from '../../../convex/_generated/api';
 export const prerender = false;
 
 const { slug } = Astro.params;
+if (!slug) {
+  return new Response('Not found', { status: 404 });
+}
 const user = await Astro.locals.currentUser();
 
 // Resolve slug for alias redirects
 let actualSlug = slug;
+let isOwner = false;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
   const resolved = await client.query(api.sites.resolveSlug, { slug });
@@ -22,12 +28,21 @@ try {
   if (user?.id) {
     const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
     const canonical = actualSlug.toLowerCase();
-    var isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === canonical);
+    isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === canonical);
+    // Debug logging
+    console.log('Blog ownership check:', {
+      userId: user.id,
+      username: user.username,
+      slug: slug,
+      actualSlug: actualSlug,
+      canonical: canonical,
+      sites: sites?.map(s => s.slug),
+      isOwner: isOwner
+    });
   }
-} catch {}
-
-// Check if user is the owner of this blog
-let isOwner = typeof isOwner !== 'undefined' ? isOwner : false;
+} catch (error) {
+  console.log('Blog ownership check error:', error);
+}
 
 const pageTitle = `${actualSlug}'s Blog`;
 const pageDescription = `Blog posts by ${actualSlug}`;
@@ -39,7 +54,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={pageTitle} description={pageDescription} />
+		<BaseHead title={pageTitle} description={pageDescription} isUserPage={true} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
 	<body data-is-owner={isOwner} data-slug={slug}>
@@ -78,7 +93,6 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 
 		<!-- Convex Provider Wrapper for Blog Header -->
 		<ConvexProviderWrapper
-			key="blog-header"
 			slug={slug}
 			editorId="blog-header-editor"
 			isOwner={isOwner}

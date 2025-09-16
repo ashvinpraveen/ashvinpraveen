@@ -29,6 +29,10 @@ export default defineSchema({
     fontHeading: v.optional(v.string()),
     // Domain
     customDomain: v.optional(v.string()),
+    domainStatus: v.optional(v.string()), // none | pending_dns | verified | live | error
+    domainVerificationToken: v.optional(v.string()),
+    domainVerifiedAt: v.optional(v.number()),
+    lastDomainError: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   }).index('by_slug', ['slug']).index('by_owner', ['ownerId']),

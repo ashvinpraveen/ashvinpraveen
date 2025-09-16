@@ -21,7 +21,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={pageTitle} description={pageDescription} />
+		<BaseHead title={pageTitle} description={pageDescription} isUserPage={false} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
 	<body data-is-owner={isOwner} data-slug="public-blog">

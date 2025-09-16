@@ -324,8 +324,9 @@ const preferredUsername = username || user.username || user.primaryEmailAddress?
           });
 
           if (response.ok) {
-            // Success! Redirect to dashboard
-            window.location.href = '/app';
+            const result = await response.json();
+            // Success! Redirect to the user's new profile page
+            window.location.href = result.profileUrl || `/${data.username}`;
           } else {
             throw new Error('Failed to create profile');
           }

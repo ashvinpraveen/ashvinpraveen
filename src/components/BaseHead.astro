@@ -13,18 +13,26 @@ interface Props {
 	description: string;
 	image?: ImageMetadata;
 	imageUrl?: string; // optional absolute/relative URL for social sharing
+	faviconUrl?: string; // optional custom favicon URL
+	isUserPage?: boolean; // whether this is a user page
 }
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
-const { title, description, image = FallbackImage, imageUrl } = Astro.props as Props;
+const { title, description, image = FallbackImage, imageUrl, faviconUrl, isUserPage } = Astro.props as Props;
+
+// Create cookie emoji favicon data URL for master pages
+const cookieFaviconDataUrl = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🍪</text></svg>';
+
+// Determine favicon URL
+const finalFaviconUrl = faviconUrl || (isUserPage ? ProfilePic.src : cookieFaviconDataUrl);
 ---
 
 <!-- Global Metadata -->
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<link rel="icon" type="image/png" href={ProfilePic.src} />
-<link rel="apple-touch-icon" href={ProfilePic.src} />
+<link rel="icon" type="image/png" href={finalFaviconUrl} />
+<link rel="apple-touch-icon" href={finalFaviconUrl} />
 <link rel="sitemap" href="/sitemap-index.xml" />
 <link
 	rel="alternate"

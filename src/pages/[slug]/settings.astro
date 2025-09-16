@@ -13,20 +13,23 @@ if (!user) {
   return Astro.redirect('/sign-in');
 }
 
-// Determine if this is the owner's dashboard; if not, redirect to their own dashboard
-const authedSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user';
-if ((slug || '').toLowerCase() !== authedSlug.toLowerCase()) {
-  return Astro.redirect(`/${authedSlug}/settings`);
-}
-
-// Resolve site slug from Convex (source of truth)
-let siteSlug = authedSlug;
+// Resolve canonical site slug from Convex (source of truth)
+let siteSlug = (user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || 'user').toLowerCase();
+let siteSettings: any = null;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
   const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
   const site = Array.isArray(sites) && sites[0] || null;
-  if (site) siteSlug = site.slug;
+  if (site) {
+    siteSlug = site.slug;
+    siteSettings = await client.query(api.sites.getSettings, { slug: site.slug });
+  }
 } catch {}
+
+// If route param doesn't match canonical slug, redirect
+if ((slug || '').toLowerCase() !== siteSlug.toLowerCase()) {
+  return Astro.redirect(`/${siteSlug}/settings`);
+}
 
 const siteLink = `/${siteSlug}`;
 const userFirst = user.firstName || '';
@@ -35,7 +38,7 @@ const userLast = user.lastName || '';
 
 <html lang="en" data-theme="dark">
   <head>
-    <BaseHead title="Settings" description="Manage your site settings" />
+    <BaseHead title="Settings" description="Manage your site settings" isUserPage={true} />
   </head>
   <body>
     <CardLayout>
@@ -61,23 +64,22 @@ const userLast = user.lastName || '';
               <div class="site-stack">
               <label>
                 <span>Site Name</span>
-                <input type="text" name="name" placeholder="My Site" />
+                <input type="text" name="name" placeholder="My Site" value={siteSettings?.name || undefined} />
               </label>
               <label>
                 <span>Username (URL)</span>
                 <div class="username-row">
                   <span class="prefix">/</span>
-                  <input type="text" id="usernameInput" placeholder="your-handle" />
+                  <input type="text" id="usernameInput" placeholder="your-handle" value={siteSlug} />
                   <button type="button" id="usernameSave" class="btn-small">Change URL</button>
                 </div>
                 <small id="usernameHelp" class="hint"></small>
               </label>
-              <label>
-                <span>Custom Domain</span>
-                <input type="text" name="customDomain" placeholder="yourdomain.com" />
-              </label>
+              <!-- Custom Domain moved to dedicated section below -->
               </div>
             </div>
+
+            
 
             <!-- Socials -->
             <div class="section-card">
@@ -162,18 +164,18 @@ const userLast = user.lastName || '';
               <div class="grid">
               <label>
                 <span>Theme</span>
-                <select name="themeMode" id="themeMode">
+                <select name="themeMode" id="themeMode" value={siteSettings?.themeMode || 'dark'}>
                   <option value="dark">Dark</option>
                   <option value="light">Light</option>
                 </select>
               </label>
               <label>
                 <span>Background</span>
-                <input type="color" name="backgroundColor" id="backgroundColor" value="#000000" />
+                <input type="color" name="backgroundColor" id="backgroundColor" value={siteSettings?.backgroundColor || '#000000'} />
               </label>
               <label>
                 <span>Body Font</span>
-                <select name="fontBody" id="fontBody">
+                <select name="fontBody" id="fontBody" value={siteSettings?.fontBody || 'Inter, system-ui, sans-serif'}>
                   <option value="Inter, system-ui, sans-serif">Inter</option>
                   <option value="system-ui, sans-serif">System Sans</option>
                   <option value="Georgia, serif">Georgia</option>
@@ -182,7 +184,7 @@ const userLast = user.lastName || '';
               </label>
               <label>
                 <span>Heading Font</span>
-                <select name="fontHeading" id="fontHeading">
+                <select name="fontHeading" id="fontHeading" value={siteSettings?.fontHeading || "'Geist Sans', system-ui, sans-serif"}>
                   <option value="'Geist Sans', system-ui, sans-serif">Geist Sans</option>
                   <option value="Inter, system-ui, sans-serif">Inter</option>
                   <option value="system-ui, sans-serif">System Sans</option>
@@ -204,20 +206,62 @@ const userLast = user.lastName || '';
               <div class="grid">
               <label class="full">
                 <span>SEO Title</span>
-                <input type="text" name="seoTitle" placeholder="Title for search engines" />
+                <input type="text" name="seoTitle" placeholder="Title for search engines" value={siteSettings?.seoTitle || undefined} />
               </label>
               <label class="full">
                 <span>SEO Description</span>
-                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social"></textarea>
+                <textarea name="seoDescription" rows="2" placeholder="Short description for search/social">{siteSettings?.seoDescription || ''}</textarea>
               </label>
-              <div class="uploader">
-                <div>
-                  <span>Social Image</span>
-                  <input type="file" id="og-file" accept="image/*" />
-                  <input type="hidden" name="ogImageId" id="ogImageId" />
-                </div>
-                <img id="og-preview" alt="OG Preview" style="display:none;" />
+              <p class="note">Social sharing image is auto-generated for your site.</p>
               </div>
+            </div>
+
+            <!-- Custom Domain (moved to bottom) -->
+            <div class="section-card">
+              <div class="section-header">
+                <h2 class="section-title">Custom Domain</h2>
+                <div class="section-actions">
+                  <button type="button" id="domain-manage" class="save">Manage</button>
+                </div>
+              </div>
+              <div class="site-stack">
+                <!-- Summary row (collapsed) -->
+                {siteSettings?.customDomain ? (
+                  <div class="domain-summary">
+                    <span class="label">URL</span>
+                    <a id="domain-link" class="link" href={`https://${siteSettings.customDomain}`} target="_blank" rel="noopener">https://{siteSettings.customDomain}</a>
+                    <span class="status-pill" id="domain-summary-status">{siteSettings?.domainStatus || 'pending'}</span>
+                  </div>
+                ) : (
+                  <button type="button" id="domain-start" class="start-link">+ Connect a domain you own</button>
+                )}
+
+                <!-- Details (progressive disclosure) -->
+                <div id="domain-details" class="domain-details {siteSettings?.customDomain ? 'hidden' : ''}">
+                  <label>
+                    <span>Domain</span>
+                    <input type="text" id="customDomainInput" placeholder="example.com or www.example.com" value={siteSettings?.customDomain || ''} />
+                  </label>
+                  <div class="domain-controls">
+                    <button type="button" id="domain-save" class="save">Save</button>
+                    <button type="button" id="domain-check" class="save">Check DNS</button>
+                    <button type="button" id="domain-connect" class="save">Connect to Netlify</button>
+                  </div>
+                <div class="domain-instructions">
+                  <p class="note">Add these DNS records at your domain provider, then click Check DNS:</p>
+                  <div class="records">
+                    <code>TXT</code>
+                    <code id="txtName">_ap-site-verification.{siteSettings?.customDomain || 'yourdomain.com'}</code>
+                    <code id="txtValue">{siteSettings?.domainVerificationToken || 'will-be-generated-on-save'}</code>
+                  </div>
+                  <div class="records">
+                    <code>CNAME</code>
+                    <code>www</code>
+                    <code id="cnameTarget">{import.meta.env.PUBLIC_NETLIFY_CNAME_TARGET || 'your-app-host.example.com'}</code>
+                  </div>
+                </div>
+                  <div class="domain-status" id="domain-status"></div>
+                </div>
               </div>
             </div>
           </form>
@@ -225,7 +269,7 @@ const userLast = user.lastName || '';
       </main>
     </CardLayout>
 
-    <script is:inline define:vars={{ siteSlug, userFirst, userLast }}>
+    <script is:inline define:vars={{ siteSlug, userFirst, userLast, hasDomain: Boolean(siteSettings?.customDomain), currentDomain: siteSettings?.customDomain || '', domainStatus: siteSettings?.domainStatus || 'none', cnameTarget: import.meta.env.PUBLIC_NETLIFY_CNAME_TARGET || '' }}>
       const form = document.getElementById('settings-form');
       const siteStatus = document.getElementById('site-status');
       const seoStatus = document.getElementById('seo-status');
@@ -234,6 +278,16 @@ const userLast = user.lastName || '';
       const usernameInput = document.getElementById('usernameInput');
       const usernameHelp = document.getElementById('usernameHelp');
       const usernameSave = document.getElementById('usernameSave');
+      const domainInput = document.getElementById('customDomainInput');
+      const domainSave = document.getElementById('domain-save');
+      const domainCheck = document.getElementById('domain-check');
+      // No explicit connect button; we connect automatically after verification
+      const domainStatus = document.getElementById('domain-status');
+      const domainDetails = document.getElementById('domain-details');
+      const domainStart = document.getElementById('domain-start');
+      const domainManage = document.getElementById('domain-manage');
+      const domainLink = document.getElementById('domain-link');
+      const domainSummaryStatus = document.getElementById('domain-summary-status');
 
       async function loadSettings() {
         try {
@@ -248,9 +302,9 @@ const userLast = user.lastName || '';
           const nameEl = form?.elements?.namedItem && form.elements.namedItem('name');
           const defaultName = [userFirst, userLast].filter(Boolean).join(' ');
           if (nameEl && 'value' in nameEl) {
-            const current = (nameEl as any).value?.trim();
+            const current = String(nameEl.value || '').trim();
             if (!current) {
-              (nameEl as any).value = defaultName ? `${defaultName}'s Personal Website` : "My Personal Website";
+              nameEl.value = defaultName ? `${defaultName}'s Personal Website` : "My Personal Website";
             }
           }
 
@@ -260,19 +314,19 @@ const userLast = user.lastName || '';
           const displayName = (s?.title && typeof s.title === 'string' && s.title.trim()) || (defaultName || '').trim() || currentSlugVar;
 
           if (seoTitleEl && 'value' in seoTitleEl) {
-            const curSeoTitle = (seoTitleEl as any).value?.trim();
+            const curSeoTitle = String(seoTitleEl.value || '').trim();
             if (!curSeoTitle) {
-              (seoTitleEl as any).value = displayName ? `${displayName} — Personal Website & Blog` : 'Personal Website & Blog';
+              seoTitleEl.value = displayName ? `${displayName} — Personal Website & Blog` : 'Personal Website & Blog';
             }
           }
           if (seoDescEl && 'value' in seoDescEl) {
-            const curSeoDesc = (seoDescEl as any).value?.trim();
+            const curSeoDesc = String(seoDescEl.value || '').trim();
             if (!curSeoDesc) {
               const base = (typeof s.bio === 'string' && s.bio.trim())
                 ? s.bio.trim()
                 : displayName ? `Explore ${displayName}'s projects, writing, and links.` : 'Explore personal projects, writing, and links.';
               // Trim to ~160 chars for meta description
-              (seoDescEl as any).value = base.length > 160 ? base.slice(0,157) + '…' : base;
+              seoDescEl.value = base.length > 160 ? base.slice(0,157) + '…' : base;
             }
           }
           if (typeof s.slug === 'string' && s.slug) {
@@ -342,26 +396,88 @@ const userLast = user.lastName || '';
         }
       });
 
-      async function uploadImage(file) {
-        const b64 = await fileToBase64(file);
-        const payload = { imageData: b64.split(',')[1], filename: file.name, mimeType: file.type };
-        try {
-          const res = await fetch('/api/images/upload', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-          if (!res.ok) return null;
-          const json = await res.json();
-          return json?.imageId || null;
-        } catch { return null; }
+      // Domain management
+      function setPill(status) {
+        if (!domainSummaryStatus) return;
+        const el = domainSummaryStatus;
+        el.classList.remove('pill-pending','pill-verified','pill-live','pill-error');
+        let label = 'Pending';
+        if (status === 'pending_dns' || status === 'none') { el.classList.add('pill-pending'); label = 'Pending'; }
+        else if (status === 'verified') { el.classList.add('pill-verified'); label = 'Verified'; }
+        else if (status === 'live') { el.classList.add('pill-live'); label = 'Live'; }
+        else if (status === 'error') { el.classList.add('pill-error'); label = 'Error'; }
+        el.textContent = label;
       }
-      function fileToBase64(file) { return new Promise((resolve, reject) => { const r = new FileReader(); r.onload = () => resolve(r.result); r.onerror = reject; r.readAsDataURL(file); }); }
 
-      const ogFile = document.getElementById('og-file');
-      const ogImageIdInput = document.getElementById('ogImageId');
-      const ogPreview = document.getElementById('og-preview');
-      ogFile?.addEventListener('change', async () => {
-        const file = ogFile.files && ogFile.files[0]; if (!file) return;
-        ogPreview.src = URL.createObjectURL(file); ogPreview.style.display = 'block';
-        const id = await uploadImage(file); if (id) ogImageIdInput.value = id;
+      // Initialize pill
+      setPill(domainStatus);
+
+      // Hide details by default; user reveals via start/manage
+      if (domainDetails) domainDetails.classList.add('hidden');
+
+      domainStart?.addEventListener('click', () => {
+        domainDetails?.classList.remove('hidden');
+        (domainInput as HTMLInputElement | null)?.focus();
       });
+      domainManage?.addEventListener('click', () => {
+        domainDetails?.classList.toggle('hidden');
+      });
+      domainSave?.addEventListener('click', async () => {
+        const domain = (domainInput as HTMLInputElement | null)?.value?.trim();
+        if (!domain) { if (domainStatus) domainStatus.textContent = 'Enter a domain'; return; }
+        if (domainStatus) domainStatus.textContent = 'Saving…';
+        try {
+          const res = await fetch('/api/domains/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: currentSlugVar, domain }) });
+          const json = await res.json();
+          if (res.ok && json?.ok) {
+            (document.getElementById('txtName') as HTMLElement).textContent = `_ap-site-verification.${domain}`;
+            (document.getElementById('txtValue') as HTMLElement).textContent = json.token || 'token';
+            if (document.getElementById('cnameTarget')) (document.getElementById('cnameTarget') as HTMLElement).textContent = cnameTarget || json.cnameTarget || '';
+            if (domainStatus) domainStatus.textContent = 'Saved. Add DNS records then click Check DNS';
+            if (domainLink) {
+              domainLink.textContent = `https://${domain}`;
+              (domainLink as HTMLAnchorElement).href = `https://${domain}`;
+            }
+            setPill('pending_dns');
+          } else {
+            if (domainStatus) domainStatus.textContent = json?.error || 'Failed to save domain';
+          }
+        } catch { if (domainStatus) domainStatus.textContent = 'Failed to save domain'; }
+      });
+
+      domainCheck?.addEventListener('click', async () => {
+        const domain = (domainInput as HTMLInputElement | null)?.value?.trim();
+        if (!domain) { if (domainStatus) domainStatus.textContent = 'Enter a domain'; return; }
+        if (domainStatus) domainStatus.textContent = 'Checking DNS…';
+        try {
+          const res = await fetch(`/api/domains/check?domain=${encodeURIComponent(domain)}&slug=${encodeURIComponent(currentSlugVar)}`);
+          const json = await res.json();
+          if (json.ok) {
+            // Auto-connect behind the scenes
+            try {
+              const conn = await fetch('/api/domains/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: currentSlugVar, domain }) });
+              if (conn.ok) {
+                if (domainStatus) domainStatus.textContent = 'Verified and running ✔';
+                setPill('live');
+              } else {
+                if (domainStatus) domainStatus.textContent = 'Verified — finishing setup…';
+                setPill('verified');
+              }
+            } catch {
+              if (domainStatus) domainStatus.textContent = 'Verified — finishing setup…';
+              setPill('verified');
+            }
+          } else {
+            const bits: string[] = [];
+            if (!json.hasTxt) bits.push('TXT missing');
+            if (!json.hasCname) bits.push('CNAME missing');
+            if (domainStatus) domainStatus.textContent = `Domain not verified: ${bits.join(', ')}. Add the records above and click Check again.`;
+            setPill('pending_dns');
+          }
+        } catch { if (domainStatus) domainStatus.textContent = 'Check failed'; }
+      });
+
+      // OG image is auto-generated; removed manual upload UI.
 
       const SOCIAL_PLATFORMS = [
         { key: 'linkedin',     prefix: 'https://linkedin.com/in/',         inputId: 'social-linkedin' },
@@ -462,9 +578,9 @@ const userLast = user.lastName || '';
 
       form?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const submitter = (e as any).submitter as HTMLButtonElement | undefined;
+        const submitter = (e && e.submitter) ? e.submitter : null;
         const id = submitter?.id || '';
-        const map: Record<string, HTMLElement | null> = {
+        const map = {
           'save-site': siteStatus,
           'save-seo': seoStatus,
           'save-appearance': appearanceStatus,
@@ -531,6 +647,22 @@ input[type="text"], input[type="url"], textarea, select, input[type="color"] {
 }
 .uploader { display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; }
 .uploader img { width: 120px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid hsl(0 0% 100% / 0.1); }
+.note { color: var(--typography-subtle); margin-top: 0.25rem; }
+.domain-instructions { display: grid; gap: 0.5rem; }
+.domain-instructions .records { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.domain-instructions code { background: hsl(0 0% 100% / 0.06); border: 1px solid hsl(0 0% 100% / 0.12); padding: 0.25rem 0.5rem; border-radius: 8px; }
+.domain-status { color: var(--typography-subtle); }
+.domain-summary { display: flex; align-items: center; gap: .75rem; }
+.domain-summary .label { color: var(--typography-muted); }
+.domain-summary .link { color: var(--typography-link); text-decoration: none; }
+.status-pill { padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.75rem; border: 1px solid transparent; }
+.pill-pending { background: hsl(0 0% 100% / 0.06); color: hsl(0 0% 80%); border-color: hsl(0 0% 100% / 0.12); }
+.pill-verified { background: hsl(48 100% 50% / 0.15); color: hsl(48 100% 65%); border-color: hsl(48 100% 50% / 0.4); }
+.pill-live { background: hsl(150 60% 25% / 0.25); color: hsl(150 70% 60%); border-color: hsl(150 60% 40% / 0.4); }
+.pill-error { background: hsl(0 80% 40% / 0.2); color: hsl(0 80% 65%); border-color: hsl(0 80% 50% / 0.4); }
+.start-link { align-self: start; background: transparent; border: 1px dashed hsl(0 0% 100% / 0.2); color: var(--typography-link); border-radius: 10px; padding: .5rem .75rem; cursor: pointer; }
+.domain-details.hidden { display: none; }
+.domain-controls { display: flex; gap: .5rem; }
 .social-list { display: grid; gap: .5rem; margin-top: .5rem; }
 .social-item { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: .75rem; padding: .5rem .75rem; border: 1px solid var(--color-border-subtle); border-radius: 10px; }
 .social-item .platform { color: var(--typography-muted); text-transform: capitalize; }

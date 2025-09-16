@@ -37,7 +37,7 @@ const pageDescription = `Learn more about ${slug}`;
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={siteSettings?.seoTitle || pageTitle} description={siteSettings?.seoDescription || pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} />
+		<BaseHead title={siteSettings?.seoTitle || pageTitle} description={siteSettings?.seoDescription || pageDescription} imageUrl={siteSettings?.ogImageId ? `/api/images/${siteSettings.ogImageId}` : undefined} isUserPage={true} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
 	<body data-is-owner={isOwner} data-slug={slug}>

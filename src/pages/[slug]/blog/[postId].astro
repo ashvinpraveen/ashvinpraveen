@@ -46,7 +46,7 @@ const pageDescription = post?.description || 'Blog post';
 <!doctype html>
 <html lang="en" data-theme="dark">
 	<head>
-		<BaseHead title={pageTitle} description={pageDescription} />
+		<BaseHead title={pageTitle} description={pageDescription} isUserPage={true} />
 		<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 	</head>
 	<body data-is-owner={isOwner} data-slug={siteSettings?.slug || slug} data-post-id={postId}>
