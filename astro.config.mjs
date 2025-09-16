@@ -11,7 +11,7 @@ import clerk from '@clerk/astro';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://example.com',
+	site: 'https://humans.cleve.ai',
 	adapter: netlify(),
 	integrations: [
 		mdx(),

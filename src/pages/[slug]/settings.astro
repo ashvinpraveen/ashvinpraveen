@@ -257,7 +257,7 @@ const userLast = user.lastName || '';
                   <div class="records">
                     <code>CNAME</code>
                     <code>www</code>
-                    <code id="cnameTarget">{import.meta.env.PUBLIC_NETLIFY_CNAME_TARGET || 'your-app-host.example.com'}</code>
+                    <code id="cnameTarget">{import.meta.env.PUBLIC_NETLIFY_CNAME_TARGET || 'humansofcleve.netlify.app'}</code>
                   </div>
                 </div>
                   <div class="domain-status" id="domain-status"></div>
@@ -282,7 +282,7 @@ const userLast = user.lastName || '';
       const domainSave = document.getElementById('domain-save');
       const domainCheck = document.getElementById('domain-check');
       // No explicit connect button; we connect automatically after verification
-      const domainStatus = document.getElementById('domain-status');
+      const domainStatusEl = document.getElementById('domain-status');
       const domainDetails = document.getElementById('domain-details');
       const domainStart = document.getElementById('domain-start');
       const domainManage = document.getElementById('domain-manage');
@@ -424,8 +424,8 @@ const userLast = user.lastName || '';
       });
       domainSave?.addEventListener('click', async () => {
         const domain = (domainInput as HTMLInputElement | null)?.value?.trim();
-        if (!domain) { if (domainStatus) domainStatus.textContent = 'Enter a domain'; return; }
-        if (domainStatus) domainStatus.textContent = 'Saving…';
+        if (!domain) { if (domainStatusEl) domainStatusEl.textContent = 'Enter a domain'; return; }
+        if (domainStatusEl) domainStatusEl.textContent = 'Saving…';
         try {
           const res = await fetch('/api/domains/set', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: currentSlugVar, domain }) });
           const json = await res.json();
@@ -433,22 +433,22 @@ const userLast = user.lastName || '';
             (document.getElementById('txtName') as HTMLElement).textContent = `_ap-site-verification.${domain}`;
             (document.getElementById('txtValue') as HTMLElement).textContent = json.token || 'token';
             if (document.getElementById('cnameTarget')) (document.getElementById('cnameTarget') as HTMLElement).textContent = cnameTarget || json.cnameTarget || '';
-            if (domainStatus) domainStatus.textContent = 'Saved. Add DNS records then click Check DNS';
+            if (domainStatusEl) domainStatusEl.textContent = 'Saved. Add DNS records then click Check DNS';
             if (domainLink) {
               domainLink.textContent = `https://${domain}`;
               (domainLink as HTMLAnchorElement).href = `https://${domain}`;
             }
             setPill('pending_dns');
           } else {
-            if (domainStatus) domainStatus.textContent = json?.error || 'Failed to save domain';
+            if (domainStatusEl) domainStatusEl.textContent = json?.error || 'Failed to save domain';
           }
-        } catch { if (domainStatus) domainStatus.textContent = 'Failed to save domain'; }
+        } catch { if (domainStatusEl) domainStatusEl.textContent = 'Failed to save domain'; }
       });
 
       domainCheck?.addEventListener('click', async () => {
         const domain = (domainInput as HTMLInputElement | null)?.value?.trim();
-        if (!domain) { if (domainStatus) domainStatus.textContent = 'Enter a domain'; return; }
-        if (domainStatus) domainStatus.textContent = 'Checking DNS…';
+        if (!domain) { if (domainStatusEl) domainStatusEl.textContent = 'Enter a domain'; return; }
+        if (domainStatusEl) domainStatusEl.textContent = 'Checking DNS…';
         try {
           const res = await fetch(`/api/domains/check?domain=${encodeURIComponent(domain)}&slug=${encodeURIComponent(currentSlugVar)}`);
           const json = await res.json();
@@ -457,24 +457,24 @@ const userLast = user.lastName || '';
             try {
               const conn = await fetch('/api/domains/connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ slug: currentSlugVar, domain }) });
               if (conn.ok) {
-                if (domainStatus) domainStatus.textContent = 'Verified and running ✔';
+                if (domainStatusEl) domainStatusEl.textContent = 'Verified and running ✔';
                 setPill('live');
               } else {
-                if (domainStatus) domainStatus.textContent = 'Verified — finishing setup…';
+                if (domainStatusEl) domainStatusEl.textContent = 'Verified — finishing setup…';
                 setPill('verified');
               }
             } catch {
-              if (domainStatus) domainStatus.textContent = 'Verified — finishing setup…';
+              if (domainStatusEl) domainStatusEl.textContent = 'Verified — finishing setup…';
               setPill('verified');
             }
           } else {
             const bits: string[] = [];
             if (!json.hasTxt) bits.push('TXT missing');
             if (!json.hasCname) bits.push('CNAME missing');
-            if (domainStatus) domainStatus.textContent = `Domain not verified: ${bits.join(', ')}. Add the records above and click Check again.`;
+            if (domainStatusEl) domainStatusEl.textContent = `Domain not verified: ${bits.join(', ')}. Add the records above and click Check again.`;
             setPill('pending_dns');
           }
-        } catch { if (domainStatus) domainStatus.textContent = 'Check failed'; }
+        } catch { if (domainStatusEl) domainStatusEl.textContent = 'Check failed'; }
       });
 
       // OG image is auto-generated; removed manual upload UI.

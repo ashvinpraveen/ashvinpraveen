@@ -1,6 +1,8 @@
 import type { APIRoute } from 'astro';
 import { ConvexHttpClient } from 'convex/browser';
-import { api } from '../../../convex/_generated/api';
+import { api } from '../../../../convex/_generated/api';
+
+export const prerender = false;
 
 const convex = new ConvexHttpClient(import.meta.env.PUBLIC_CONVEX_URL);
 
