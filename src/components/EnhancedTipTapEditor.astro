@@ -46,7 +46,7 @@ const {
 		data-page-key={pageKey}
 	></div>
 
-	{showBubbleMenu && (
+	{showBubbleMenu && isOwner && (
 		<!-- Bubble Menu for Text Selection -->
 		<div id={`${id}-bubble-menu`} class="bubble-menu">
 			<button class="menu-btn" data-action="bold">
@@ -65,7 +65,7 @@ const {
 		</div>
 	)}
 
-	{showContextMenu && (
+	{showContextMenu && isOwner && (
 		<!-- Enhanced Context Menu with all advanced features -->
 		<div id={`${id}-context-menu`} class="context-menu">
 			<!-- Text Formatting -->
@@ -150,7 +150,7 @@ const {
 		</div>
 	)}
 
-	{showUploadModal && (
+	{showUploadModal && isOwner && (
 		<!-- Enhanced Upload Modal -->
 		<div id={`${id}-url-modal`} class="url-modal">
 			<div class="modal-content">
@@ -758,8 +758,8 @@ const {
 			Highlight,
 		];
 
-		// Add bubble menu if enabled
-		if (config.showBubbleMenu) {
+		// Add bubble menu if enabled and user is owner
+		if (config.showBubbleMenu && config.isOwner) {
 			extensions.push(
 				BubbleMenu.configure({
 					element: document.querySelector(`#${config.id}-bubble-menu`),
@@ -799,11 +799,11 @@ const {
 		// Setup event listeners
 		setupEnhancedMenuEventListeners();
 
-		if (config.showContextMenu) {
+		if (config.showContextMenu && config.isOwner) {
 			setupEnhancedContextMenu();
 		}
 
-		if (config.showUploadModal) {
+		if (config.showUploadModal && config.isOwner) {
 			setupUploadModal();
 		}
 
@@ -818,7 +818,7 @@ const {
 		if (!config) return;
 
 		// Bubble menu event listeners
-		if (config.showBubbleMenu) {
+		if (config.showBubbleMenu && config.isOwner) {
 			document.querySelectorAll(`#${config.id}-bubble-menu .menu-btn`).forEach(btn => {
 				btn.addEventListener('click', (e) => {
 					const action = e.currentTarget.dataset.action;
@@ -828,7 +828,7 @@ const {
 		}
 
 		// Context menu event listeners
-		if (config.showContextMenu) {
+		if (config.showContextMenu && config.isOwner) {
 			document.querySelectorAll(`#${config.id}-context-menu .menu-btn`).forEach(btn => {
 				btn.addEventListener('click', (e) => {
 					const action = e.currentTarget.dataset.action;

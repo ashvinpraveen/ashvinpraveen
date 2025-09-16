@@ -13,7 +13,7 @@ interface ConvexDataManagerProps {
 export default function ConvexDataManager({ slug, editorId, isOwner, pageKey, pageTitle }: ConvexDataManagerProps) {
   console.log('🔄 ConvexDataManager loading with props:', { slug, editorId, isOwner, pageKey, pageTitle });
   console.log('🔍 Component render count:', Math.random()); // Debug: see if component re-renders
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const isSavingRef = useRef<boolean>(false);
 
   // Create unique storage key for this page

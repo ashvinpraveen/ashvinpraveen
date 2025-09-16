@@ -12,7 +12,9 @@ import clerk from '@clerk/astro';
 // https://astro.build/config
 export default defineConfig({
 	site: 'https://humans.cleve.ai',
-	adapter: netlify(),
+	adapter: netlify({
+		edgeMiddleware: false // Disable edge middleware in development
+	}),
 	integrations: [
 		mdx(),
 		react(),
@@ -23,4 +25,39 @@ export default defineConfig({
     icon(),
     clerk(),
     ],
+	vite: {
+		build: {
+			// Enable chunk splitting for better caching
+			rollupOptions: {
+				output: {
+					manualChunks(id) {
+						// Split vendor chunks for better caching
+						if (id.includes('convex')) {
+							return 'convex-vendor';
+						}
+						if (id.includes('react') || id.includes('react-dom')) {
+							return 'react-vendor';
+						}
+						if (id.includes('@tiptap')) {
+							return 'tiptap-vendor';
+						}
+						if (id.includes('@clerk')) {
+							return 'clerk-vendor';
+						}
+						if (id.includes('node_modules')) {
+							return 'vendor';
+						}
+					}
+				}
+			},
+			// Optimize chunks
+			chunkSizeWarningLimit: 1000,
+			// Use default minifier (esbuild)
+			minify: true
+		},
+		// Optimize dependencies
+		optimizeDeps: {
+			include: ['react', 'react-dom', 'convex/react']
+		}
+	}
 });

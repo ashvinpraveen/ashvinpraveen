@@ -55,6 +55,9 @@ export default defineSchema({
     key: v.string(), // e.g., 'about', 'home'
     title: v.string(),
     content: v.string(), // markdown
+    version: v.optional(v.number()), // Increment on each update for conflict resolution
+    contentHash: v.optional(v.string()), // Hash of content for fast comparison
+    lastEditedBy: v.optional(v.string()), // Clerk user ID of last editor
     updatedAt: v.number(),
   }).index('by_site_key', ['siteId', 'key']).index('by_site', ['siteId']),
 

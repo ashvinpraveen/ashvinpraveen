@@ -34,10 +34,29 @@ export const getBySlug = query({
   },
 });
 
+// Helper function to create content hash
+function createContentHash(content: string): string {
+  // Simple hash function for content comparison
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(36);
+}
+
 export const upsert = mutation({
-  args: { siteSlug: v.string(), key: v.string(), title: v.string(), content: v.string() },
+  args: {
+    siteSlug: v.string(),
+    key: v.string(),
+    title: v.string(),
+    content: v.string(),
+    expectedVersion: v.optional(v.number()), // For conflict detection
+    userId: v.optional(v.string()) // Clerk user ID
+  },
   handler: async (ctx, args) => {
-    const { siteSlug, key, title, content } = args;
+    const { siteSlug, key, title, content, expectedVersion, userId } = args;
 
     // Special handling for homepage site - ensure it exists
     if (siteSlug === 'homepage') {
@@ -80,12 +99,45 @@ export const upsert = mutation({
         .query('pages')
         .withIndex('by_site_key', (q) => q.eq('siteId', site!._id).eq('key', key))
         .first();
+
       const now = Date.now();
+      const contentHash = createContentHash(content);
+
       if (existing) {
-        await ctx.db.patch(existing._id, { title, content, updatedAt: now });
-        return existing._id;
+        // Check for conflicts if expectedVersion is provided
+        // Treat undefined version as 0 for compatibility
+        const currentVersion = existing.version || 0;
+        if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+          throw new Error(`Conflict detected: expected version ${expectedVersion}, but current version is ${currentVersion}`);
+        }
+
+        // Only update if content actually changed
+        if (existing.contentHash !== contentHash) {
+          const newVersion = (existing.version || 0) + 1;
+          await ctx.db.patch(existing._id, {
+            title,
+            content,
+            version: newVersion,
+            contentHash,
+            lastEditedBy: userId,
+            updatedAt: now
+          });
+          return { id: existing._id, version: newVersion, contentHash };
+        }
+        return { id: existing._id, version: existing.version || 0, contentHash };
       }
-      return await ctx.db.insert('pages', { siteId: site!._id, key, title, content, updatedAt: now });
+
+      const pageId = await ctx.db.insert('pages', {
+        siteId: site!._id,
+        key,
+        title,
+        content,
+        version: 1,
+        contentHash,
+        lastEditedBy: userId,
+        updatedAt: now
+      });
+      return { id: pageId, version: 1, contentHash };
     }
 
     // Regular site handling
@@ -94,16 +146,50 @@ export const upsert = mutation({
       .withIndex('by_slug', (q) => q.eq('slug', siteSlug))
       .first();
     if (!site) throw new Error('Site not found');
+
     const existing = await ctx.db
       .query('pages')
       .withIndex('by_site_key', (q) => q.eq('siteId', site._id).eq('key', key))
       .first();
+
     const now = Date.now();
+    const contentHash = createContentHash(content);
+
     if (existing) {
-      await ctx.db.patch(existing._id, { title, content, updatedAt: now });
-      return existing._id;
+      // Check for conflicts if expectedVersion is provided
+      // Treat undefined version as 0 for compatibility
+      const currentVersion = existing.version || 0;
+      if (expectedVersion !== undefined && currentVersion !== expectedVersion) {
+        throw new Error(`Conflict detected: expected version ${expectedVersion}, but current version is ${currentVersion}`);
+      }
+
+      // Only update if content actually changed
+      if (existing.contentHash !== contentHash) {
+        const newVersion = (existing.version || 0) + 1;
+        await ctx.db.patch(existing._id, {
+          title,
+          content,
+          version: newVersion,
+          contentHash,
+          lastEditedBy: userId,
+          updatedAt: now
+        });
+        return { id: existing._id, version: newVersion, contentHash };
+      }
+      return { id: existing._id, version: existing.version || 0, contentHash };
     }
-    return await ctx.db.insert('pages', { siteId: site._id, key, title, content, updatedAt: now });
+
+    const pageId = await ctx.db.insert('pages', {
+      siteId: site._id,
+      key,
+      title,
+      content,
+      version: 1,
+      contentHash,
+      lastEditedBy: userId,
+      updatedAt: now
+    });
+    return { id: pageId, version: 1, contentHash };
   },
 });
 
