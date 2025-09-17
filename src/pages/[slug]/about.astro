@@ -9,23 +9,37 @@ import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 export const prerender = false;
 
 const { slug } = Astro.params;
+const user = await Astro.locals.currentUser();
+let isOwner = false;
+
+// Optimize queries to run in parallel for better performance
 let siteSettings: any = null;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+
+  // Step 1: Resolve slug first (needed for redirect check)
   const resolved = await client.query(api.sites.resolveSlug, { slug });
   if (resolved?.redirect && resolved?.canonicalSlug) {
     return Astro.redirect(`/${resolved.canonicalSlug}/about`);
   }
+
+  // Step 2: Run remaining queries in parallel
   const actualSlug = resolved?.canonicalSlug || slug;
-  siteSettings = await client.query(api.sites.getSettings, { slug: actualSlug });
-} catch {}
-const user = await Astro.locals.currentUser();
-let isOwner = false;
-try {
-  const client2 = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+  const promises = [
+    client.query(api.sites.getSettings, { slug: actualSlug })
+  ];
+
   if (user?.id) {
-    const sites = await client2.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
-    const current = (siteSettings?.slug || slug).toLowerCase();
+    promises.push(client.query(api.sites.listSitesForClerk, { clerkUserId: user.id }));
+  }
+
+  const results = await Promise.all(promises);
+  siteSettings = results[0];
+
+  // Check ownership if user is logged in
+  if (user?.id && results[1]) {
+    const sites = results[1];
+    const current = (siteSettings?.slug || actualSlug).toLowerCase();
     isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === current);
   }
 } catch {}

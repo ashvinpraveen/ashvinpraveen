@@ -17,18 +17,34 @@ const user = await Astro.locals.currentUser();
 const auth = Astro.locals.auth();
 let isOwner = false;
 
-// Resolve slug (handles old aliases) and load settings for SEO if available
+// Resolve slug and load data in parallel for better performance
 let siteSettings: any = null;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+
+  // Step 1: Resolve slug first (needed for redirect check)
   const resolved = await client.query(api.sites.resolveSlug, { slug });
   if (resolved?.redirect && resolved?.canonicalSlug) {
     return Astro.redirect(`/${resolved.canonicalSlug}`);
   }
-  siteSettings = resolved?.site ? await client.query(api.sites.getSettings, { slug: resolved.canonicalSlug }) : await client.query(api.sites.getSettings, { slug });
+
+  // Step 2: Run remaining queries in parallel
+  const targetSlug = resolved?.canonicalSlug || slug;
+  const promises = [
+    client.query(api.sites.getSettings, { slug: targetSlug })
+  ];
+
   if (user?.id) {
-    const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
-    const canonical = (resolved?.canonicalSlug || slug).toLowerCase();
+    promises.push(client.query(api.sites.listSitesForClerk, { clerkUserId: user.id }));
+  }
+
+  const results = await Promise.all(promises);
+  siteSettings = results[0];
+
+  // Check ownership if user is logged in
+  if (user?.id && results[1]) {
+    const sites = results[1];
+    const canonical = targetSlug.toLowerCase();
     isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === canonical);
   }
 } catch {}

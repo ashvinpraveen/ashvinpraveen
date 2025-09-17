@@ -15,15 +15,19 @@ if (!slug) {
 }
 const user = await Astro.locals.currentUser();
 
-// Resolve slug for alias redirects
+// Optimize queries to run in parallel for better performance
 let actualSlug = slug;
 let isOwner = false;
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+
+  // Step 1: Resolve slug first (needed for redirect check)
   const resolved = await client.query(api.sites.resolveSlug, { slug });
   if (resolved?.redirect && resolved?.canonicalSlug) {
     return Astro.redirect(`/${resolved.canonicalSlug}/blog`);
   }
+
+  // Step 2: Run ownership check in parallel if user is logged in
   actualSlug = resolved?.canonicalSlug || slug;
   if (user?.id) {
     const sites = await client.query(api.sites.listSitesForClerk, { clerkUserId: user.id });

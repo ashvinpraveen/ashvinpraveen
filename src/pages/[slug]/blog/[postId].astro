@@ -9,30 +9,42 @@ import ConvexProviderWrapper from '../../../components/ConvexProviderWrapper.tsx
 export const prerender = false;
 
 const { slug, postId } = Astro.params;
+const user = await Astro.locals.currentUser();
+let isOwner = false;
+
+// Optimize queries to run in parallel for better performance
 let siteSettings: any = null;
 let post: any = null;
-
 try {
   const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
   if (slug && postId) {
+    // Step 1: Resolve slug first (needed for redirect check)
     const resolved = await client.query(api.sites.resolveSlug, { slug });
     if (resolved?.redirect && resolved?.canonicalSlug) {
       return Astro.redirect(`/${resolved.canonicalSlug}/blog/${postId}`);
     }
-    const actualSlug = resolved?.canonicalSlug || slug;
-    siteSettings = await client.query(api.sites.getSettings, { slug: actualSlug });
-    post = await client.query(api.posts.getByUniqueId, { siteSlug: actualSlug, uniqueId: postId });
-  }
-} catch {}
 
-const user = await Astro.locals.currentUser();
-let isOwner = false;
-try {
-  const client2 = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-  if (user?.id) {
-    const sites = await client2.query(api.sites.listSitesForClerk, { clerkUserId: user.id });
-    const targetSlug = (siteSettings?.slug || slug).toLowerCase();
-    isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === targetSlug);
+    // Step 2: Run remaining queries in parallel
+    const actualSlug = resolved?.canonicalSlug || slug;
+    const promises = [
+      client.query(api.sites.getSettings, { slug: actualSlug }),
+      client.query(api.posts.getByUniqueId, { siteSlug: actualSlug, uniqueId: postId })
+    ];
+
+    if (user?.id) {
+      promises.push(client.query(api.sites.listSitesForClerk, { clerkUserId: user.id }));
+    }
+
+    const results = await Promise.all(promises);
+    siteSettings = results[0];
+    post = results[1];
+
+    // Check ownership if user is logged in
+    if (user?.id && results[2]) {
+      const sites = results[2];
+      const targetSlug = (siteSettings?.slug || actualSlug).toLowerCase();
+      isOwner = Array.isArray(sites) && sites.some((s: any) => (s?.slug || '').toLowerCase() === targetSlug);
+    }
   }
 } catch {}
 
