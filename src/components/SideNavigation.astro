@@ -4,6 +4,7 @@ import HeaderLink from './HeaderLink.astro';
 import { Icon } from 'astro-icon/components';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
+import { extractSubdomain, isReservedSubdomain } from '../utils/subdomain';
 
 export const prerender = false;
 
@@ -24,20 +25,19 @@ if (isAuthenticated) {
   } catch {}
 }
 
-// Detect if we're on a user page
-const currentPath = Astro.url.pathname;
-const pathParts = currentPath.split('/').filter(Boolean);
-const mainSitePages = ['app', 'blog', 'about', 'onboarding', 'sign-in', 'sign-up'];
-const isMainSitePage = currentPath === '/' || mainSitePages.some(page => currentPath.startsWith(`/${page}`));
-const isUserPage = !isMainSitePage && pathParts.length > 0;
+// Detect if we're on a user page by checking subdomain
+const hostname = Astro.url.hostname;
+const baseDomain = 'cleve.ai';
+const subdomain = extractSubdomain(hostname, baseDomain);
 
-let currentUserSlug = null;
+// We're on a user page if there's a subdomain and it's not reserved (like 'humans')
+const isUserPage = subdomain !== null && !isReservedSubdomain(subdomain);
+const currentUserSlug = isUserPage ? subdomain : null;
+
 let isCurrentUserOwner = false;
 let socialLinks: Array<{ platform: string; url: string }> = [];
 
-if (isUserPage) {
-  currentUserSlug = pathParts[0]; // /username/...
-
+if (isUserPage && currentUserSlug) {
   if (isAuthenticated) {
     const fallbackSlug = user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0] || '';
     const compareSlug = (ownerSlug || fallbackSlug || '').toLowerCase();
@@ -79,39 +79,39 @@ if (isUserPage && currentUserSlug) {
         </div>
       )}
       <h2>
-        <a href={isUserPage ? `/${currentUserSlug}` : "/"}>
+        <a href="/">
           {isUserPage ? `${currentUserSlug?.charAt(0).toUpperCase()}${currentUserSlug?.slice(1)}` : SITE_TITLE}
         </a>
       </h2>
     </div>
     {isUserPage && (
       <p class="nav-subtitle">
-        <a href="/" class="back-to-main">← Back to {SITE_TITLE}</a>
+        <a href={`https://humans.${baseDomain}`} class="back-to-main">← Back to {SITE_TITLE}</a>
       </p>
     )}
   </div>
 
   <div class="nav-links">
     {isUserPage ? (
-      // User page navigation
+      // User page navigation - use root-relative paths since we're on the user's subdomain
       <>
-        <HeaderLink href={`/${currentUserSlug}`} class="nav-link">
+        <HeaderLink href="/" class="nav-link">
           <i data-lucide="home"></i>
           <span>Profile</span>
         </HeaderLink>
 
-        <HeaderLink href={`/${currentUserSlug}/blog`} class="nav-link">
+        <HeaderLink href="/blog" class="nav-link">
           <i data-lucide="file-text"></i>
           <span>Blog</span>
         </HeaderLink>
 
-        <HeaderLink href={`/${currentUserSlug}/about`} class="nav-link">
+        <HeaderLink href="/about" class="nav-link">
           <i data-lucide="user"></i>
           <span>About</span>
         </HeaderLink>
 
         {isCurrentUserOwner && (
-          <HeaderLink href={`/${currentUserSlug}/settings`} class="nav-link admin-link">
+          <HeaderLink href="/settings" class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Settings</span>
           </HeaderLink>
@@ -136,7 +136,7 @@ if (isUserPage && currentUserSlug) {
         </HeaderLink>
 
         {isAuthenticated && (
-          <HeaderLink href={`/${ownerSlug || preferredUsername}/settings`} class="nav-link admin-link">
+          <HeaderLink href={`https://${ownerSlug || preferredUsername}.${baseDomain}/settings`} class="nav-link admin-link">
             <i data-lucide="settings"></i>
             <span>Settings</span>
           </HeaderLink>
@@ -150,7 +150,7 @@ if (isUserPage && currentUserSlug) {
       // Logged in user
       <>
         {!isViewingOwnPage && (
-          <a href={`/${ownerSlug || preferredUsername}`} class="user-link">
+          <a href={`https://${ownerSlug || preferredUsername}.${baseDomain}`} class="user-link">
             <div class="user-avatar">
               <img
                 src={user.imageUrl || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.firstName || ownerSlug || preferredUsername)}`}
