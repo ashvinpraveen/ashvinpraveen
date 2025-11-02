@@ -11,7 +11,7 @@ import clerk from '@clerk/astro';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://humans.cleve.ai',
+	site: 'https://cleve.ai',
 	adapter: netlify({
 		edgeMiddleware: false // Disable edge middleware in development
 	}),

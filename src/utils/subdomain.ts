@@ -87,15 +87,15 @@ export const RESERVED_SUBDOMAINS = new Set([
 
 /**
  * Extracts the subdomain from a hostname
- * @param hostname - The full hostname (e.g., "ashvin.humans.cleve.ai" or "example.com")
- * @param baseDomain - The base domain to extract from (e.g., "humans.cleve.ai")
+ * @param hostname - The full hostname (e.g., "ashvin.cleve.ai" or "example.com")
+ * @param baseDomain - The base domain to extract from (e.g., "cleve.ai")
  * @returns The subdomain or null if it's the base domain or a custom domain
  *
  * Examples:
- * - extractSubdomain("ashvin.humans.cleve.ai", "humans.cleve.ai") -> "ashvin"
- * - extractSubdomain("www.humans.cleve.ai", "humans.cleve.ai") -> "www"
- * - extractSubdomain("humans.cleve.ai", "humans.cleve.ai") -> null
- * - extractSubdomain("example.com", "humans.cleve.ai") -> null (custom domain)
+ * - extractSubdomain("ashvin.cleve.ai", "cleve.ai") -> "ashvin"
+ * - extractSubdomain("www.cleve.ai", "cleve.ai") -> "www"
+ * - extractSubdomain("cleve.ai", "cleve.ai") -> null
+ * - extractSubdomain("example.com", "cleve.ai") -> null (custom domain)
  */
 export function extractSubdomain(hostname: string, baseDomain: string): string | null {
   if (!hostname || !baseDomain) return null;
@@ -168,7 +168,7 @@ export async function resolveSlugFromHostname(
   const subdomain = extractSubdomain(hostname, baseDomain);
 
   if (subdomain) {
-    // Accessing via subdomain (e.g., ashvin.humans.cleve.ai)
+    // Accessing via subdomain (e.g., ashvin.cleve.ai)
     return subdomain;
   }
 

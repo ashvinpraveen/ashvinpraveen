@@ -9,7 +9,7 @@ export const prerender = false;
 
 // Extract subdomain from request hostname instead of path
 const hostname = Astro.url.hostname;
-const baseDomain = getBaseDomain(Astro.site?.toString() || 'humans.cleve.ai');
+const baseDomain = getBaseDomain(Astro.site?.toString() || 'cleve.ai');
 const subdomain = extractSubdomain(hostname, baseDomain);
 
 const user = await Astro.locals.currentUser();
