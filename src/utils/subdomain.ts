@@ -7,6 +7,9 @@
  * These are common subdomains used for infrastructure and services
  */
 export const RESERVED_SUBDOMAINS = new Set([
+  // Platform
+  'humans',
+
   // Infrastructure
   'www',
   'app',
@@ -93,6 +96,7 @@ export const RESERVED_SUBDOMAINS = new Set([
  *
  * Examples:
  * - extractSubdomain("ashvin.cleve.ai", "cleve.ai") -> "ashvin"
+ * - extractSubdomain("humans.cleve.ai", "cleve.ai") -> "humans" (platform site)
  * - extractSubdomain("www.cleve.ai", "cleve.ai") -> "www"
  * - extractSubdomain("cleve.ai", "cleve.ai") -> null
  * - extractSubdomain("example.com", "cleve.ai") -> null (custom domain)
@@ -168,6 +172,11 @@ export async function resolveSlugFromHostname(
   const subdomain = extractSubdomain(hostname, baseDomain);
 
   if (subdomain) {
+    // Check if this is a reserved subdomain (like 'humans' for the platform)
+    if (isReservedSubdomain(subdomain)) {
+      // Reserved subdomains should not be treated as user slugs
+      return null;
+    }
     // Accessing via subdomain (e.g., ashvin.cleve.ai)
     return subdomain;
   }

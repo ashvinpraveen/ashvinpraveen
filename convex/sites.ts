@@ -4,6 +4,9 @@ import { v } from 'convex/values';
 // Reserved subdomains that cannot be used for user profiles
 // These are common subdomains used for infrastructure and services
 const RESERVED_SLUGS = new Set([
+  // Platform
+  'humans',
+
   // Infrastructure
   'www',
   'app',

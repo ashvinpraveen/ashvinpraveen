@@ -12,7 +12,7 @@ export const prerender = false;
 
 // Resolve slug from subdomain or custom domain
 const hostname = Astro.url.hostname;
-const baseDomain = getBaseDomain(Astro.site?.toString() || 'cleve.ai');
+const baseDomain = 'cleve.ai'; // Base domain for subdomain extraction
 const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
 const slug = await resolveSlugFromHostname(hostname, baseDomain, client);
 
