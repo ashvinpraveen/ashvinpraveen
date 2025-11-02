@@ -4,9 +4,14 @@ import CardLayout from '../../components/CardLayout.astro';
 import { Icon } from 'astro-icon/components';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../convex/_generated/api';
+import { extractSubdomain, getBaseDomain } from '../../utils/subdomain';
 export const prerender = false;
 
-const { slug } = Astro.params;
+// Extract subdomain from request hostname instead of path
+const hostname = Astro.url.hostname;
+const baseDomain = 'cleve.ai'; // Base domain for subdomain extraction
+const subdomain = extractSubdomain(hostname, baseDomain);
+
 const user = await Astro.locals.currentUser();
 
 if (!user) {
@@ -26,12 +31,14 @@ try {
   }
 } catch {}
 
-// If route param doesn't match canonical slug, redirect
-if ((slug || '').toLowerCase() !== siteSlug.toLowerCase()) {
-  return Astro.redirect(`/${siteSlug}/settings`);
+// If accessing from subdomain, verify it matches canonical slug
+if (subdomain && subdomain.toLowerCase() !== siteSlug.toLowerCase()) {
+  // Redirect to the canonical subdomain
+  const canonicalUrl = `${Astro.url.protocol}//${siteSlug}.${baseDomain}/settings`;
+  return Astro.redirect(canonicalUrl);
 }
 
-const siteLink = `/${siteSlug}`;
+const siteLink = `/`;
 const userFirst = user.firstName || '';
 const userLast = user.lastName || '';
 ---
@@ -67,11 +74,11 @@ const userLast = user.lastName || '';
                 <input type="text" name="name" placeholder="My Site" value={siteSettings?.name || undefined} />
               </label>
               <label>
-                <span>Username (URL)</span>
+                <span>Username (Subdomain)</span>
                 <div class="username-row">
-                  <span class="prefix">/</span>
                   <input type="text" id="usernameInput" placeholder="your-handle" value={siteSlug} />
-                  <button type="button" id="usernameSave" class="btn-small">Change URL</button>
+                  <span class="prefix">.{baseDomain}</span>
+                  <button type="button" id="usernameSave" class="btn-small">Change Username</button>
                 </div>
                 <small id="usernameHelp" class="hint"></small>
               </label>
@@ -387,7 +394,10 @@ const userLast = user.lastName || '';
           const res = await fetch('/api/sites/changeSlug', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newSlug: target }) });
           const json = await res.json();
           if (res.ok && json?.ok) {
-            window.location.href = `/${target}/settings`;
+            // Redirect to the new subdomain
+            const protocol = window.location.protocol;
+            const baseDomain = window.location.hostname.split('.').slice(-2).join('.');
+            window.location.href = `${protocol}//${target}.${baseDomain}/settings`;
           } else {
             setHelp(json?.error || 'Failed to update', false);
           }

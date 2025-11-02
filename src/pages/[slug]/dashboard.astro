@@ -1,15 +1,14 @@
 ---
 export const prerender = false;
-const { slug } = Astro.params;
 ---
 <html>
   <head>
-    <meta http-equiv="refresh" content={`0; url=/${slug}/settings`} />
+    <meta http-equiv="refresh" content="0; url=/settings" />
   </head>
   <body>
-    <script>window.location.replace(`/${location.pathname.split('/')[1]}/settings`)</script>
+    <script>window.location.replace('/settings')</script>
     <noscript>
-      <a href={`/${slug}/settings`}>Go to Settings</a>
+      <a href="/settings">Go to Settings</a>
     </noscript>
   </body>
 </html>
