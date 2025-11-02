@@ -7,11 +7,18 @@ import EnhancedTipTapEditor from '../../components/EnhancedTipTapEditor.astro';
 import ConvexProviderWrapper from '../../components/ConvexProviderWrapper.tsx';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../convex/_generated/api';
+import { getBaseDomain, resolveSlugFromHostname } from '../../utils/subdomain';
 export const prerender = false;
 
-const { slug } = Astro.params;
+// Resolve slug from subdomain or custom domain
+const hostname = Astro.url.hostname;
+const baseDomain = getBaseDomain(Astro.site?.toString() || 'humans.cleve.ai');
+const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+const slug = await resolveSlugFromHostname(hostname, baseDomain, client);
+
 if (!slug) {
-  return new Response('Not found', { status: 404 });
+  // Not a valid subdomain or custom domain - redirect to homepage
+  return Astro.redirect('/');
 }
 const user = await Astro.locals.currentUser();
 
@@ -19,12 +26,12 @@ const user = await Astro.locals.currentUser();
 let actualSlug = slug;
 let isOwner = false;
 try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-
   // Step 1: Resolve slug first (needed for redirect check)
   const resolved = await client.query(api.sites.resolveSlug, { slug });
   if (resolved?.redirect && resolved?.canonicalSlug) {
-    return Astro.redirect(`/${resolved.canonicalSlug}/blog`);
+    // Redirect to the canonical subdomain
+    const canonicalUrl = `${Astro.url.protocol}//${resolved.canonicalSlug}.${baseDomain}/blog`;
+    return Astro.redirect(canonicalUrl);
   }
 
   // Step 2: Run ownership check in parallel if user is logged in
@@ -222,7 +229,7 @@ const defaultBlogHeader = '<h1>Blog</h1><p>Here\'s a collection of some thoughts
 			function handleNewPost() {
 				if (!isOwner) return;
 				const postId = generateUniqueId();
-				window.location.href = `/${slug}/blog/${postId}`;
+				window.location.href = `/blog/${postId}`;
 			}
 
 			// Event listeners

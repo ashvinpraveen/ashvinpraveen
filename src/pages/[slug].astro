@@ -6,13 +6,23 @@ import EnhancedTipTapEditor from "../components/EnhancedTipTapEditor.astro";
 import ConvexProviderWrapper from "../components/ConvexProviderWrapper.tsx";
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../convex/_generated/api';
+import { getBaseDomain, resolveSlugFromHostname } from '../utils/subdomain';
 
 export async function getStaticPaths() {
   return [];
 }
 export const prerender = false;
 
-const { slug } = Astro.params;
+// Resolve slug from subdomain or custom domain
+const hostname = Astro.url.hostname;
+const baseDomain = getBaseDomain(Astro.site?.toString() || 'humans.cleve.ai');
+const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
+const slug = await resolveSlugFromHostname(hostname, baseDomain, client);
+
+if (!slug) {
+  // Not a valid subdomain or custom domain - redirect to homepage
+  return Astro.redirect('/');
+}
 const user = await Astro.locals.currentUser();
 const auth = Astro.locals.auth();
 let isOwner = false;
@@ -20,12 +30,12 @@ let isOwner = false;
 // Resolve slug and load data in parallel for better performance
 let siteSettings: any = null;
 try {
-  const client = new ConvexHttpClient(import.meta.env.CONVEX_URL || import.meta.env.PUBLIC_CONVEX_URL);
-
   // Step 1: Resolve slug first (needed for redirect check)
   const resolved = await client.query(api.sites.resolveSlug, { slug });
   if (resolved?.redirect && resolved?.canonicalSlug) {
-    return Astro.redirect(`/${resolved.canonicalSlug}`);
+    // Redirect to the canonical subdomain
+    const canonicalUrl = `${Astro.url.protocol}//${resolved.canonicalSlug}.${baseDomain}`;
+    return Astro.redirect(canonicalUrl);
   }
 
   // Step 2: Run remaining queries in parallel

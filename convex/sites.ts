@@ -1,8 +1,85 @@
 import { mutation, query } from './_generated/server';
 import { v } from 'convex/values';
 
+// Reserved subdomains that cannot be used for user profiles
+// These are common subdomains used for infrastructure and services
 const RESERVED_SLUGS = new Set([
-  'about','blog','app','sign-in','sign-up','onboarding','api','rss','rss.xml','sitemap','sitemap.xml','robots.txt','favicon.ico'
+  // Infrastructure
+  'www',
+  'app',
+  'api',
+  'admin',
+  'dashboard',
+
+  // Environments
+  'staging',
+  'dev',
+  'development',
+  'test',
+  'testing',
+  'preview',
+  'demo',
+
+  // Email & Communication
+  'mail',
+  'email',
+  'smtp',
+  'imap',
+  'pop',
+  'webmail',
+
+  // Common services
+  'blog',
+  'docs',
+  'help',
+  'support',
+  'status',
+  'cdn',
+  'assets',
+  'static',
+  'media',
+  'images',
+  'files',
+
+  // Authentication & Security
+  'auth',
+  'login',
+  'signin',
+  'sign-in',
+  'signup',
+  'sign-up',
+  'logout',
+  'register',
+  'sso',
+
+  // System pages
+  'about',
+  'contact',
+  'privacy',
+  'terms',
+  'legal',
+  'careers',
+  'jobs',
+
+  // Technical
+  'ftp',
+  'sftp',
+  'ssh',
+  'vpn',
+  'proxy',
+  'gateway',
+  'redirect',
+
+  // Marketing
+  'marketing',
+  'sales',
+  'ads',
+  'analytics',
+
+  // Special
+  'onboarding',
+  'settings',
+  'profile',
 ]);
 
 export const upsertUser = mutation({
@@ -33,6 +110,17 @@ export const getSiteBySlug = query({
     return ctx.db
       .query('sites')
       .withIndex('by_slug', (q) => q.eq('slug', slug))
+      .first();
+  },
+});
+
+export const getSiteByCustomDomain = query({
+  args: { domain: v.string() },
+  handler: async (ctx, args) => {
+    const domain = normalizeDomain(args.domain);
+    return ctx.db
+      .query('sites')
+      .filter((q) => q.eq(q.field('customDomain'), domain))
       .first();
   },
 });
